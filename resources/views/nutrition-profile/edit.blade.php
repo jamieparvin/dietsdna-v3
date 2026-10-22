@@ -20,21 +20,24 @@
             return false;
         };
 
+        $formatMeasurement = function ($value, string $unit) {
+            return $value !== null
+                ? rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.').' '.$unit
+                : 'Not set';
+        };
+
         $goalText = $goals[$profile?->goal ?? ''] ?? 'Not set';
         $activityText = $activityLevels[$profile?->activity_level ?? ''] ?? 'Not set';
         $dietText = $dietaryPreferences[$profile?->dietary_preference ?? ''] ?? 'Not set';
 
-        $heightText = $profile?->height_cm !== null
-            ? rtrim(rtrim($profile->height_cm, '0'), '.').' cm'
-            : 'Not set';
-
-        $weightText = $profile?->weight_kg !== null
-            ? rtrim(rtrim($profile->weight_kg, '0'), '.').' kg'
-            : 'Not set';
+        $today = now()->timezone('Europe/London');
+        $earliestBirthDate = $today->copy()->subYears(120)->toDateString();
+        $latestBirthDate = $today->copy()->subYears(18)->toDateString();
     @endphp
 
     <style>
         .pf-page {
+            width: 100%;
             color: #153f32;
         }
 
@@ -48,18 +51,18 @@
         }
 
         .pf-eyebrow {
+            margin-bottom: 10px;
             color: #64816e;
             font-size: 11px;
             font-weight: 700;
             letter-spacing: 1.6px;
             text-transform: uppercase;
-            margin-bottom: 10px;
         }
 
         .pf-heading h1 {
+            margin-bottom: 10px;
             font-size: clamp(28px, 3vw, 38px);
             letter-spacing: -1.2px;
-            margin-bottom: 10px;
         }
 
         .pf-heading p {
@@ -68,10 +71,10 @@
         }
 
         .pf-saved {
+            padding: 9px 14px;
             background: #e9f3ec;
             border: 1px solid #d1e4d6;
             border-radius: 999px;
-            padding: 9px 14px;
             color: #356249;
             font-size: 12px;
         }
@@ -131,9 +134,9 @@
         }
 
         .pf-list > div {
+            min-width: 0;
             padding: 13px 0;
             border-bottom: 1px solid #edf0e8;
-            min-width: 0;
         }
 
         .pf-list dt {
@@ -156,16 +159,16 @@
 
         .pf-note {
             margin: 0;
+            color: #6b786f;
             font-size: 12px;
             line-height: 1.7;
-            color: #6b786f;
         }
 
         .pf-edit {
             margin-top: auto;
+            background: #fafbf7;
             border: 1px solid #dfe7df;
             border-radius: 12px;
-            background: #fafbf7;
         }
 
         .pf-edit > summary {
@@ -173,8 +176,8 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            cursor: pointer;
             padding: 15px 17px;
+            cursor: pointer;
             font-size: 13px;
             font-weight: 700;
             list-style: none;
@@ -208,17 +211,23 @@
             gap: 0 18px;
         }
 
+        .pf-fields > div {
+            min-width: 0;
+        }
+
         .pf-page label {
             font-size: 13px;
         }
 
         .pf-page select,
-        .pf-page textarea {
+        .pf-page textarea,
+        .pf-page input:not([type="hidden"]) {
             width: 100%;
+            min-width: 0;
             padding: 13px;
+            background: white;
             border: 1px solid #b9cbc0;
             border-radius: 8px;
-            background: white;
             color: #17332c;
             font: inherit;
         }
@@ -235,11 +244,11 @@
         .pf-preference {
             display: inline-block;
             align-self: flex-start;
+            padding: 9px 15px;
             background: #edf5e6;
-            color: #315c39;
             border: 1px solid #d2e3c4;
             border-radius: 999px;
-            padding: 9px 15px;
+            color: #315c39;
             font-size: 14px;
             font-weight: 600;
         }
@@ -248,13 +257,13 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 20px;
             flex-wrap: wrap;
+            gap: 20px;
             margin-top: 24px;
             padding: 22px 26px;
+            background: white;
             border: 1px solid #dfe7df;
             border-radius: 16px;
-            background: white;
         }
 
         .pf-save-actions {
@@ -350,13 +359,18 @@
                         </div>
 
                         <div>
+                            <dt>Date of birth</dt>
+                            <dd>{{ $profile?->date_of_birth?->format('j M Y') ?? 'Not set' }}</dd>
+                        </div>
+
+                        <div>
                             <dt>Height</dt>
-                            <dd>{{ $heightText }}</dd>
+                            <dd>{{ $formatMeasurement($profile?->height_cm, 'cm') }}</dd>
                         </div>
 
                         <div>
                             <dt>Profile weight</dt>
-                            <dd>{{ $weightText }}</dd>
+                            <dd>{{ $formatMeasurement($profile?->weight_kg, 'kg') }}</dd>
                         </div>
                     </dl>
 
@@ -367,12 +381,31 @@
 
                     <details
                         class="pf-edit"
-                        @if ($openSection(['height_cm', 'weight_kg'])) open @endif
+                        @if ($openSection(['date_of_birth', 'height_cm', 'weight_kg'])) open @endif
                     >
-                        <summary>Edit measurements</summary>
+                        <summary>Edit personal details</summary>
 
                         <div class="pf-edit-body">
                             <div class="pf-fields">
+                                <div class="pf-span">
+                                    <label for="date_of_birth">Date of birth</label>
+
+                                    <input
+                                        id="date_of_birth"
+                                        name="date_of_birth"
+                                        type="date"
+                                        autocomplete="bday"
+                                        min="{{ $earliestBirthDate }}"
+                                        max="{{ $latestBirthDate }}"
+                                        value="{{ old('date_of_birth', $profile?->date_of_birth?->format('Y-m-d')) }}"
+                                        aria-describedby="birth-date-help"
+                                    >
+
+                                    <p class="pf-note" id="birth-date-help">
+                                        Optional. This nutrition profile is for adults aged 18 and over.
+                                    </p>
+                                </div>
+
                                 <div>
                                     <label for="height_cm">Height (cm)</label>
 
@@ -417,7 +450,7 @@
 
                         <div>
                             <h2 id="goals-heading">Goals and activity</h2>
-                            <p class="pf-description">What you want to work towards</p>
+                            <p class="pf-description">Your direction and daily routine</p>
                         </div>
                     </div>
 
@@ -431,6 +464,21 @@
                             <dt>Activity level</dt>
                             <dd>{{ $activityText }}</dd>
                         </div>
+
+                        <div>
+                            <dt>Target weight</dt>
+                            <dd>{{ $formatMeasurement($profile?->target_weight_kg, 'kg') }}</dd>
+                        </div>
+
+                        <div>
+                            <dt>Meals per day</dt>
+                            <dd>{{ $profile?->meals_per_day ?? 'Not set' }}</dd>
+                        </div>
+
+                        <div class="pf-span">
+                            <dt>Cooking time per meal</dt>
+                            <dd>{{ $profile?->cooking_minutes !== null ? $profile->cooking_minutes.' minutes' : 'Not set' }}</dd>
+                        </div>
                     </dl>
 
                     <p class="pf-note">
@@ -440,7 +488,13 @@
 
                     <details
                         class="pf-edit"
-                        @if ($openSection(['goal', 'activity_level'])) open @endif
+                        @if ($openSection([
+                            'goal',
+                            'activity_level',
+                            'target_weight_kg',
+                            'meals_per_day',
+                            'cooking_minutes',
+                        ])) open @endif
                     >
                         <summary>Edit goals and activity</summary>
 
@@ -474,6 +528,61 @@
                                     </option>
                                 @endforeach
                             </select>
+
+                            <label for="target_weight_kg">Target weight (kg)</label>
+
+                            <input
+                                id="target_weight_kg"
+                                name="target_weight_kg"
+                                type="number"
+                                min="20"
+                                max="500"
+                                step="0.01"
+                                inputmode="decimal"
+                                value="{{ old('target_weight_kg', $profile?->target_weight_kg) }}"
+                                aria-describedby="target-weight-help"
+                            >
+
+                            <p class="pf-note" id="target-weight-help">
+                                Optional. This records your personal goal;
+                                it is not a recommended target.
+                            </p>
+
+                            <div class="pf-fields">
+                                <div>
+                                    <label for="meals_per_day">Preferred meals per day</label>
+
+                                    <select id="meals_per_day" name="meals_per_day">
+                                        <option value="">Choose your preference</option>
+
+                                        @foreach (range(2, 6) as $number)
+                                            <option
+                                                value="{{ $number }}"
+                                                @selected((string) old('meals_per_day', $profile?->meals_per_day) === (string) $number)
+                                            >
+                                                {{ $number }} meals
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="cooking_minutes">Cooking time per meal</label>
+
+                                    <select id="cooking_minutes" name="cooking_minutes">
+                                        <option value="">Choose your preference</option>
+
+                                        @foreach ([15, 30, 45, 60] as $minutes)
+                                            <option
+                                                value="{{ $minutes }}"
+                                                @selected((string) old('cooking_minutes', $profile?->cooking_minutes) === (string) $minutes)
+                                            >
+                                                {{ $minutes }} minutes
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </details>
                 </section>
@@ -580,8 +689,8 @@
 
             <footer class="pf-save">
                 <p class="pf-note">
-                    All fields are optional. Save your changes to update
-                    the summaries above.
+                    All fields are optional.
+                    Save your changes to update the summaries above.
                 </p>
 
                 <div class="pf-save-actions">
@@ -597,7 +706,6 @@
         (() => {
             const form = document.getElementById('nutrition-profile-form');
 
-            // Open a collapsed editor before focusing an invalid field.
             form.addEventListener('invalid', (event) => {
                 const editor = event.target.closest('details');
 

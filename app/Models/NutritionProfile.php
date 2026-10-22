@@ -14,6 +14,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'dietary_preference',
     'allergies',
     'foods_to_avoid',
+    'date_of_birth',
+    'target_weight_kg',
+    'meals_per_day',
+    'cooking_minutes',
 ])]
 class NutritionProfile extends Model
 {
@@ -22,6 +26,10 @@ class NutritionProfile extends Model
         return [
             'height_cm' => 'decimal:2',
             'weight_kg' => 'decimal:2',
+            'date_of_birth' => 'date',
+            'target_weight_kg' => 'decimal:2',
+            'meals_per_day' => 'integer',
+            'cooking_minutes' => 'integer',
         ];
     }
 

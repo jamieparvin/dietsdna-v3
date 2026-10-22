@@ -49,20 +49,50 @@ class NutritionProfileController extends Controller
                 'nullable',
                 Rule::in(array_keys(self::GOALS)),
             ],
+
             'height_cm' => [
                 'nullable', 'numeric', 'between:50,300',
             ],
+
             'weight_kg' => [
                 'nullable', 'numeric', 'between:20,500',
             ],
+
+            'date_of_birth' => [
+                'nullable',
+                'date_format:Y-m-d',
+                'before_or_equal:'.now()->timezone('Europe/London')->subYears(18)->toDateString(),
+                'after_or_equal:'.now()->timezone('Europe/London')->subYears(120)->toDateString(),
+            ],
+
+            'target_weight_kg' => [
+                'nullable',
+                'numeric',
+                'between:20,500',
+            ],
+
+            'meals_per_day' => [
+                'nullable',
+                'integer',
+                Rule::in([2, 3, 4, 5, 6]),
+            ],
+
+            'cooking_minutes' => [
+                'nullable',
+                'integer',
+                Rule::in([15, 30, 45, 60]),
+            ],
+
             'activity_level' => [
                 'nullable',
                 Rule::in(array_keys(self::ACTIVITY_LEVELS)),
             ],
+
             'dietary_preference' => [
                 'nullable',
                 Rule::in(array_keys(self::DIETARY_PREFERENCES)),
             ],
+            
             'allergies' => ['nullable', 'string', 'max:2000'],
             'foods_to_avoid' => ['nullable', 'string', 'max:2000'],
         ]);
