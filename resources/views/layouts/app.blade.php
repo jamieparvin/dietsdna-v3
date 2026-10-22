@@ -3,7 +3,7 @@
 
     $upcomingItems = $isAdminArea
         ? ['Ingredients', 'Recipes', 'Meal plans', 'Imports', 'Settings']
-        : ['Nutrition profile', 'Meal plan', 'Recipes', 'Shopping list', 'Food diary', 'Progress'];
+        : ['Meal plan', 'Recipes', 'Shopping list', 'Food diary', 'Progress'];
 @endphp
 
 <!DOCTYPE html>
@@ -190,8 +190,8 @@
 
         main {
             width: 100%;
-            max-width: 1400px;
-            margin: auto;
+            max-width: none;
+            margin: 0;
             padding: 36px;
         }
 
@@ -399,6 +399,18 @@
                         @endif
                     >
                         Customers
+                    </a>
+                @endif
+
+                    @if (! $isAdminArea)
+                    <a
+                        href="{{ route('nutrition-profile.edit') }}"
+                        class="nav-link {{ request()->routeIs('nutrition-profile.*') ? 'active' : '' }}"
+                        @if (request()->routeIs('nutrition-profile.*'))
+                            aria-current="page"
+                        @endif
+                    >
+                        Nutrition profile
                     </a>
                 @endif
 

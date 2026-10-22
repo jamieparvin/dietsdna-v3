@@ -24,4 +24,10 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
         ];
     }
+    
+    public function nutritionProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(NutritionProfile::class);
+    }
+
 }
