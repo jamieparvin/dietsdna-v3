@@ -338,6 +338,48 @@
     @php
         $today = now()->timezone('Europe/London');
 
+        $profile = auth()->user()->nutritionProfile;
+
+        $goalLabels = [
+            'eat_better' => 'Build healthier eating habits',
+            'lose_weight' => 'Lose weight',
+            'maintain_weight' => 'Maintain weight',
+            'gain_weight' => 'Gain weight',
+            'build_muscle' => 'Build muscle',
+        ];
+
+        $activityLabels = [
+            'sedentary' => 'Mostly seated, little regular exercise',
+            'light' => 'Light activity',
+            'moderate' => 'Moderately active',
+            'high' => 'Very active',
+        ];
+
+        $dietLabels = [
+            'no_preference' => 'No particular preference',
+            'vegetarian' => 'Vegetarian',
+            'vegan' => 'Vegan',
+            'pescatarian' => 'Pescatarian',
+            'flexitarian' => 'Flexitarian',
+        ];
+
+        $profileFields = [
+            $profile?->goal,
+            $profile?->height_cm,
+            $profile?->weight_kg,
+            $profile?->activity_level,
+            $profile?->dietary_preference,
+        ];
+
+        $profileDetailsComplete = count(array_filter(
+            $profileFields,
+            fn ($value) => $value !== null && $value !== ''
+        )) === count($profileFields);
+
+        $formatMeasurement = fn ($value, $unit) => $value !== null
+            ? rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.').' '.$unit
+            : 'Not set';
+
         $nutritionCards = [
             ['label' => 'Calories', 'unit' => 'kcal', 'color' => '#19815a'],
             ['label' => 'Protein', 'unit' => 'g', 'color' => '#6b8bb5'],
@@ -371,14 +413,25 @@
 
         <section class="dna-setup" aria-labelledby="setup-heading">
             <div>
-                <h2 id="setup-heading">Make DietsDNA your own</h2>
+                <h2 id="setup-heading">
+                    {{ $profileDetailsComplete
+                        ? 'Your profile is ready to build on'
+                        : 'Make DietsDNA your own' }}
+                </h2>
+
                 <p>
-                    Your goals, preferences and allergies will help shape your plan.
+                    @if ($profileDetailsComplete)
+                        Review your details whenever your goals or routine change.
+                    @elseif ($profile)
+                        Add your remaining goal, measurement and preference details.
+                    @else
+                        Start with your goals, measurements and food preferences.
+                    @endif
                 </p>
             </div>
 
             <a href="{{ route('nutrition-profile.edit') }}">
-                Edit your nutrition profile →
+                {{ $profile ? 'Edit nutrition profile' : 'Set up your profile' }} →
             </a>
         </section>
 
@@ -443,37 +496,72 @@
 
             <section class="dna-panel" aria-labelledby="progress-heading">
                 <div class="dna-panel-header">
-                    <h2 id="progress-heading">Your direction</h2>
-                    <span class="dna-status">Getting started</span>
+                    <h2 id="progress-heading">Your nutrition profile</h2>
+
+                    <span class="dna-status">
+                        {{ $profile ? 'Saved details' : 'Getting started' }}
+                    </span>
                 </div>
 
                 <div class="dna-empty">
-                    <div class="dna-eyebrow">Small steps, steady habits</div>
+                    <div class="dna-eyebrow">Your main goal</div>
 
-                    <h3 style="margin-top: 12px;">Progress begins with you</h3>
+                    <h3 style="margin-top: 12px;">
+                        {{ $goalLabels[$profile?->goal ?? ''] ?? 'Choose your direction' }}
+                    </h3>
 
                     <p>
-                        Choose what you want to work towards.
-                        Your progress will build from the information you record.
+                        @if ($profile?->goal)
+                            Your saved goal gives your nutrition journey a clear focus.
+                        @else
+                            Set a goal in your nutrition profile to get started.
+                        @endif
                     </p>
                 </div>
 
-                <div class="dna-progress">
+                <dl class="dna-progress" style="margin-bottom: 0;">
                     <div class="dna-progress-row">
-                        <span>Nutrition goal</span>
-                        <strong>Not set</strong>
+                        <dt style="color: #61756a;">Height</dt>
+                        <dd style="margin: 0; font-weight: 700; text-align: right;">
+                            {{ $formatMeasurement($profile?->height_cm, 'cm') }}
+                        </dd>
                     </div>
 
                     <div class="dna-progress-row">
-                        <span>Weight records</span>
-                        <strong>No entries</strong>
+                        <dt style="color: #61756a;">Profile weight</dt>
+                        <dd style="margin: 0; font-weight: 700; text-align: right;">
+                            {{ $formatMeasurement($profile?->weight_kg, 'kg') }}
+                        </dd>
                     </div>
 
                     <div class="dna-progress-row">
-                        <span>Food diary</span>
-                        <strong>No entries</strong>
+                        <dt style="color: #61756a;">Activity</dt>
+                        <dd style="margin: 0; font-weight: 700; text-align: right;">
+                            {{ $activityLabels[$profile?->activity_level ?? ''] ?? 'Not set' }}
+                        </dd>
                     </div>
-                </div>
+
+                    <div class="dna-progress-row">
+                        <dt style="color: #61756a;">Dietary preference</dt>
+                        <dd style="margin: 0; font-weight: 700; text-align: right;">
+                            {{ $dietLabels[$profile?->dietary_preference ?? ''] ?? 'Not set' }}
+                        </dd>
+                    </div>
+                </dl>
+
+                @if ($profile)
+                    <p style="font-size: 12px; margin-top: 22px;">
+                        Last saved
+                        {{ $profile->updated_at->timezone('Europe/London')->format('j M Y, H:i') }}.
+                        Profile weight is your saved measurement.
+                    </p>
+                @endif
+
+                <p style="margin-bottom: 0;">
+                    <a href="{{ route('nutrition-profile.edit') }}">
+                        {{ $profile ? 'Review your profile' : 'Create your profile' }} →
+                    </a>
+                </p>
             </section>
         </div>
 
