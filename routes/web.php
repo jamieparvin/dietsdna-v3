@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\IngredientController;
+use App\Http\Controllers\Admin\IngredientImportController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\NutritionProfileController;
 use App\Http\Middleware\EnsureUserIsAdmin;
@@ -19,10 +21,29 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        Route::view('/', 'admin.dashboard')->name('dashboard');
+        Route::view('/', 'admin.dashboard')
+            ->name('dashboard');
 
         Route::get('/users', [UserController::class, 'index'])
             ->name('users.index');
+
+        Route::get('/ingredients/import', [
+            IngredientImportController::class,
+            'create',
+        ])->name('ingredients.import.create');
+
+        Route::post('/ingredients/import/preview', [
+            IngredientImportController::class,
+            'preview',
+        ])->name('ingredients.import.preview');
+
+        Route::post('/ingredients/import/confirm', [
+            IngredientImportController::class,
+            'confirm',
+        ])->name('ingredients.import.confirm');
+
+        Route::resource('ingredients', IngredientController::class)
+            ->only(['index', 'create', 'store', 'edit', 'update']);
     });
 
 Route::middleware('auth')->group(function () {

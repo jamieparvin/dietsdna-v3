@@ -2,7 +2,7 @@
     $isAdminArea = request()->routeIs('admin.*');
 
     $upcomingItems = $isAdminArea
-        ? ['Ingredients', 'Recipes', 'Meal plans', 'Imports', 'Settings']
+        ? ['Recipes', 'Meal plans', 'Imports', 'Settings']
         : ['Meal plan', 'Recipes', 'Shopping list', 'Food diary', 'Progress'];
 @endphp
 
@@ -311,6 +311,142 @@
             margin: 0;
         }
 
+        /* Version 2 sidebar appearance */
+
+        .sidebar {
+            background: #153f32;
+            border-right: 0;
+            padding: 26px 14px 20px;
+            color: #e7eee8;
+        }
+
+        .sidebar-brand {
+            padding: 0 12px 26px;
+        }
+
+        .sidebar .brand {
+            color: #ffffff;
+            font-size: 25px;
+            letter-spacing: -.8px;
+        }
+
+        .sidebar .brand span {
+            color: #dce5b4;
+        }
+
+        .sidebar .area-label {
+            color: #b8cfc2;
+            font-size: 12px;
+        }
+
+        .sidebar .nav-label {
+            color: #abc5b6;
+            font-size: 10px;
+            letter-spacing: 1.5px;
+        }
+
+        .sidebar .nav-link,
+        .sidebar .nav-pending {
+            min-height: 44px;
+            padding: 12px 14px;
+            margin-bottom: 5px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .sidebar .nav-link {
+            color: #d4e3d9;
+            font-weight: 600;
+            transition: background-color .15s ease, color .15s ease;
+        }
+
+        .sidebar .nav-link:hover {
+            background: #245442;
+            color: #ffffff;
+        }
+
+        .sidebar .nav-link.active,
+        .sidebar .nav-link.active:hover {
+            background: #f4f1e7;
+            color: #153f32;
+        }
+
+        .sidebar .nav-pending {
+            color: #b8cfc2;
+        }
+
+        .sidebar .soon {
+            background: rgba(255, 255, 255, .08);
+            color: #b8cfc2;
+            border: 1px solid rgba(255, 255, 255, .08);
+            font-size: 9px;
+        }
+
+        .sidebar .switch-area {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(255, 255, 255, .13);
+        }
+
+        .sidebar .sidebar-footer {
+            margin-top: 28px;
+            padding: 20px 8px 0;
+            border-top: 1px solid rgba(255, 255, 255, .13);
+        }
+
+        .sidebar .user-name {
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .sidebar .user-role {
+            color: #abc5b6;
+            font-size: 11px;
+        }
+
+        .sidebar .logout-button {
+            width: 100%;
+            margin-top: 16px;
+            padding: 11px 16px;
+            background: transparent;
+            border: 1px solid #547565;
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 13px;
+        }
+
+        .sidebar .logout-button:hover {
+            background: #245442;
+            border-color: #789786;
+        }
+
+        .sidebar a:focus-visible,
+        .sidebar button:focus-visible,
+        .sidebar summary:focus-visible {
+            outline: 3px solid #dce5b4;
+            outline-offset: 2px;
+        }
+
+        @media (max-width: 800px) {
+            .sidebar {
+                padding: 20px;
+                border-bottom: 0;
+            }
+
+            .sidebar .sidebar-brand {
+                padding: 0 0 16px;
+            }
+
+            .sidebar .navigation summary {
+                background: #245442;
+                color: #ffffff;
+            }
+
+            .sidebar .sidebar-footer {
+                margin-top: 16px;
+            }
+        }
+
         @media (max-width: 1100px) {
             .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
@@ -391,16 +527,26 @@
                     </a>
 
                     @if ($isAdminArea && auth()->user()->is_admin)
-                    <a
-                        href="{{ route('admin.users.index') }}"
-                        class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
-                        @if (request()->routeIs('admin.users.*'))
-                            aria-current="page"
-                        @endif
-                    >
-                        Customers
-                    </a>
-                @endif
+                        <a
+                            href="{{ route('admin.users.index') }}"
+                            class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
+                            @if (request()->routeIs('admin.users.*'))
+                                aria-current="page"
+                            @endif
+                        >
+                            Customers
+                        </a>
+
+                        <a
+                            href="{{ route('admin.ingredients.index') }}"
+                            class="nav-link {{ request()->routeIs('admin.ingredients.*') ? 'active' : '' }}"
+                            @if (request()->routeIs('admin.ingredients.*'))
+                                aria-current="page"
+                            @endif
+                        >
+                            Ingredients
+                        </a>
+                    @endif
 
                     @if (! $isAdminArea)
                     <a
