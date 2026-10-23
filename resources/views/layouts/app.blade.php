@@ -2,7 +2,7 @@
     $isAdminArea = request()->routeIs('admin.*');
 
     $upcomingItems = $isAdminArea
-        ? ['Recipes', 'Meal plans', 'Imports', 'Settings']
+        ? ['Meal plans', 'Imports', 'Settings']
         : ['Meal plan', 'Recipes', 'Shopping list', 'Food diary', 'Progress'];
 @endphp
 
@@ -545,6 +545,16 @@
                             @endif
                         >
                             Ingredients
+                        </a>
+
+                        <a
+                            href="{{ route('admin.recipes.index') }}"
+                            class="nav-link {{ request()->routeIs('admin.recipes.*') ? 'active' : '' }}"
+                            @if (request()->routeIs('admin.recipes.*'))
+                                aria-current="page"
+                            @endif
+                        >
+                            Recipes
                         </a>
                     @endif
 

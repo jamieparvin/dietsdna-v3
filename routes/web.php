@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\IngredientController;
 use App\Http\Controllers\Admin\IngredientImportController;
+use App\Http\Controllers\Admin\RecipeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\NutritionProfileController;
 use App\Http\Middleware\EnsureUserIsAdmin;
@@ -44,7 +45,10 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])
 
         Route::resource('ingredients', IngredientController::class)
             ->only(['index', 'create', 'store', 'edit', 'update']);
-    });
+
+        Route::resource('recipes', RecipeController::class)
+            ->only(['index', 'create', 'store', 'edit', 'update']); 
+    });    
 
 Route::middleware('auth')->group(function () {
     Route::get('/nutrition-profile', [NutritionProfileController::class, 'edit'])
