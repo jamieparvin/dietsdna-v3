@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\IngredientController;
 use App\Http\Controllers\Admin\IngredientImportController;
 use App\Http\Controllers\Admin\RecipeController;
+use App\Http\Controllers\Admin\RecipeGenerationController;
 use App\Http\Controllers\Admin\NutritionCalculatorSettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\NutritionProfileController;
@@ -46,6 +47,17 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])
 
         Route::resource('ingredients', IngredientController::class)
             ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+
+        Route::get('/recipes/generate', [
+            RecipeGenerationController::class,
+            'create',
+        ])->name('recipes.generate.create');
+
+        Route::post('/recipes/generate', [
+            RecipeGenerationController::class,
+            'store',
+        ])->middleware('throttle:3,1')
+            ->name('recipes.generate.store');
 
         Route::resource('recipes', RecipeController::class)
             ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);

@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+        'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+        'recipe_model' => env('OPENAI_RECIPE_MODEL', 'gpt-4.1-mini'),
+    ],
+
 ];

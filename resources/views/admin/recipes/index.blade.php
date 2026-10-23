@@ -11,9 +11,22 @@
             <p>Build your recipe library using your ingredients.</p>
         </div>
 
-        <a href="{{ route('admin.recipes.create') }}" class="recipe-button">
-            Add recipe
-        </a>
+        <div class="recipe-actions">
+            <a
+                href="{{ route('admin.recipes.generate.create') }}"
+                class="recipe-button"
+            >
+                Generate recipes
+            </a>
+
+            <a
+                href="{{ route('admin.recipes.create') }}"
+                class="recipe-button"
+                style="background: #167451;"
+            >
+                Add recipe
+            </a>
+        </div>
     </div>
 
     <form method="GET" class="recipe-filter">
