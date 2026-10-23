@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\NutritionProfile;
+use App\Services\Nutrition\NutritionCalculatorSettings;
 use App\Services\Nutrition\NutritionTargetCalculator;
 use Carbon\CarbonImmutable;
 use Tests\TestCase;
@@ -25,8 +26,10 @@ class NutritionTargetCalculatorTest extends TestCase
         parent::tearDown();
     }
 
-    private function calculate(array $changes = []): array
-    {
+    private function calculate(
+        array $changes = [],
+        array $settings = []
+    ): array {
         $profile = new NutritionProfile(array_replace([
             'date_of_birth' => '1996-10-23',
             'height_cm' => 180,
@@ -39,7 +42,15 @@ class NutritionTargetCalculatorTest extends TestCase
             'target_weight_kg' => null,
         ], $changes));
 
-        return app(NutritionTargetCalculator::class)->calculate($profile);
+        $calculator = new NutritionTargetCalculator([
+            'revision' => 7,
+            'values' => array_replace(
+                NutritionCalculatorSettings::defaults(),
+                $settings
+            ),
+        ]);
+
+        return $calculator->calculate($profile);
     }
 
     public function test_maintenance_uses_expected_age_and_energy(): void
@@ -161,5 +172,45 @@ class NutritionTargetCalculatorTest extends TestCase
 
         $this->assertSame('review', $result['status']);
         $this->assertArrayNotHasKey('calories_kcal', $result);
+    }
+
+    public function test_custom_calorie_settings_are_applied(): void
+{
+    $settings = [
+        'loss_percent' => 20,
+        'gain_surplus' => 400,
+        'muscle_surplus' => 250,
+    ];
+
+    foreach ([
+        'lose_weight' => 2210,
+        'gain_weight' => 3160,
+        'build_muscle' => 3010,
+    ] as $goal => $expectedCalories) {
+        $result = $this->calculate(['goal' => $goal], $settings);
+
+        $this->assertSame('ready', $result['status']);
+        $this->assertSame($expectedCalories, $result['calories_kcal']);
+    }
+}
+
+    public function test_custom_activity_and_macro_settings_are_applied(): void
+    {
+        $result = $this->calculate([], [
+            'activity_moderate' => 1.60,
+            'protein_training' => 1.8,
+            'fat_percent' => 25,
+        ]);
+
+        $this->assertSame('ready', $result['status']);
+        $this->assertSame(2850, $result['calories_kcal']);
+        $this->assertEqualsWithDelta(144, $result['protein_g'], 0.001);
+        $this->assertEqualsWithDelta(
+            712.5,
+            $result['fat_g'] * 9,
+            0.001
+        );
+
+        $this->assertStringContainsString('settings 7', $result['version']);
     }
 }

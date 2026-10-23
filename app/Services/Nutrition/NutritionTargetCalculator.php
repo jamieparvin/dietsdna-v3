@@ -7,15 +7,12 @@ use Carbon\CarbonImmutable;
 
 class NutritionTargetCalculator
 {
-    public const VERSION = 'dietsdna-targets-v1';
+    public const VERSION = 'dietsdna-targets-v2';
 
-    // Product assumptions, not measured activity expenditure.
-    private const ACTIVITY_FACTORS = [
-        'sedentary' => 1.20,
-        'light' => 1.375,
-        'moderate' => 1.55,
-        'high' => 1.725,
-    ];
+    public function __construct(
+        private readonly ?array $configuration = null
+    ) {
+    }
 
     public function calculate(?NutritionProfile $profile): array
     {
@@ -85,9 +82,21 @@ class NutritionTargetCalculator
             );
         }
 
+        $configuration = $this->configuration
+            ?? app(NutritionCalculatorSettings::class)->current();
+
+        $settings = $configuration['values'];
+
+        $activityFactors = [
+            'sedentary' => $settings['activity_sedentary'],
+            'light' => $settings['activity_light'],
+            'moderate' => $settings['activity_moderate'],
+            'high' => $settings['activity_high'],
+        ];
+
         if (
             ! in_array($profile->calculation_sex, ['male', 'female'], true)
-            || ! isset(self::ACTIVITY_FACTORS[$profile->activity_level])
+            || ! isset($activityFactors[$profile->activity_level])
             || ! in_array($profile->goal, [
                 'eat_better',
                 'lose_weight',
@@ -148,13 +157,19 @@ class NutritionTargetCalculator
             - 5 * $age
             + $sexConstant;
 
-        $factor = self::ACTIVITY_FACTORS[$profile->activity_level];
+        $factor = $activityFactors[$profile->activity_level];
         $maintenance = $resting * $factor;
 
         $adjusted = match ($profile->goal) {
-            'lose_weight' => $maintenance * 0.85,
-            'gain_weight' => $maintenance + 300,
-            'build_muscle' => $maintenance + 200,
+            'lose_weight' =>
+                $maintenance * (1 - $settings['loss_percent'] / 100),
+
+            'gain_weight' =>
+                $maintenance + $settings['gain_surplus'],
+
+            'build_muscle' =>
+                $maintenance + $settings['muscle_surplus'],
+
             default => $maintenance,
         };
 
@@ -173,14 +188,20 @@ class NutritionTargetCalculator
 
         // Starting protein defaults in grams per kilogram of current weight.
         $proteinFactor = match (true) {
-            $trains && $profile->goal === 'lose_weight' => 2.0,
-            $trains || $profile->goal === 'build_muscle' => 1.6,
-            $profile->goal === 'lose_weight' => 1.6,
-            default => 1.2,
+            $trains && $profile->goal === 'lose_weight' =>
+                $settings['protein_loss_training'],
+
+            $trains || $profile->goal === 'build_muscle' =>
+                $settings['protein_training'],
+
+            $profile->goal === 'lose_weight' =>
+                $settings['protein_loss'],
+
+            default => $settings['protein_general'],
         };
 
         $protein = $weight * $proteinFactor;
-        $fat = ($calories * 0.30) / 9;
+        $fat = ($calories * $settings['fat_percent'] / 100) / 9;
         $carbohydrate = ($calories - $protein * 4 - $fat * 9) / 4;
 
         if ($carbohydrate <= 0) {
@@ -193,7 +214,8 @@ class NutritionTargetCalculator
         return [
             'status' => 'ready',
             'message' => 'Starting estimates based on your saved profile.',
-            'version' => self::VERSION,
+            'version' => self::VERSION.' / settings '.$configuration['revision'],
+            'settings' => $settings,
             'age' => $age,
             'resting_kcal' => $resting,
             'activity_factor' => $factor,

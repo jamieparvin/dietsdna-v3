@@ -58,14 +58,17 @@
                     Goal adjustment:
                     {{ $targets['adjustment_kcal'] >= 0 ? '+' : '' }}{{ number_format($targets['adjustment_kcal']) }}
                     kcal after rounding.
-                    Weight loss uses a 15% deficit; weight gain adds 300 kcal;
-                    muscle building adds 200 kcal.
+
+                    Weight loss uses a {{ $targets['settings']['loss_percent'] }}% deficit;
+                    weight gain adds {{ $targets['settings']['gain_surplus'] }} kcal;
+                    muscle building adds {{ $targets['settings']['muscle_surplus'] }} kcal.
                 </p>
 
                 <p class="pf-note">
-                    Protein: {{ $targets['protein_factor'] }} g per kg of current
-                    weight. Fat: 30% of calories. The remaining energy is
-                    allocated to carbohydrate using a simplified 4/4/9 calculation.
+                    Protein: {{ $targets['protein_factor'] }} g per kg of current weight.
+                    Fat: {{ $targets['settings']['fat_percent'] }}% of calories.
+                    The remaining energy is allocated to carbohydrate using a simplified
+                    4/4/9 calculation.
                 </p>
 
                 <p class="pf-note">

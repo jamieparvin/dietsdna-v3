@@ -556,6 +556,16 @@
                         >
                             Recipes
                         </a>
+
+                        <a
+                            href="{{ route('admin.calculator-settings.edit') }}"
+                            class="nav-link {{ request()->routeIs('admin.calculator-settings.*') ? 'active' : '' }}"
+                            @if (request()->routeIs('admin.calculator-settings.*'))
+                                aria-current="page"
+                            @endif
+                        >
+                            Calculator settings
+                        </a>
                     @endif
 
                     @if (! $isAdminArea)

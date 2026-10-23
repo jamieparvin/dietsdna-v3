@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\IngredientController;
 use App\Http\Controllers\Admin\IngredientImportController;
 use App\Http\Controllers\Admin\RecipeController;
+use App\Http\Controllers\Admin\NutritionCalculatorSettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\NutritionProfileController;
 use App\Http\Middleware\EnsureUserIsAdmin;
@@ -48,6 +49,16 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])
 
         Route::resource('recipes', RecipeController::class)
             ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+
+        Route::get('/calculator-settings', [
+            NutritionCalculatorSettingsController::class,
+            'edit',
+        ])->name('calculator-settings.edit');
+
+        Route::put('/calculator-settings', [
+            NutritionCalculatorSettingsController::class,
+            'update',
+        ])->name('calculator-settings.update');
     });    
 
 Route::middleware('auth')->group(function () {
