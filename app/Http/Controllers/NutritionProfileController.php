@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Nutrition\NutritionTargetCalculator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -32,13 +33,18 @@ class NutritionProfileController extends Controller
         'flexitarian' => 'Flexitarian',
     ];
 
-    public function edit(Request $request): View
-    {
+    public function edit(
+        Request $request,
+        NutritionTargetCalculator $calculator
+    ): View {
+        $profile = $request->user()->nutritionProfile;
+
         return view('nutrition-profile.edit', [
-            'profile' => $request->user()->nutritionProfile,
+            'profile' => $profile,
             'goals' => self::GOALS,
             'activityLevels' => self::ACTIVITY_LEVELS,
             'dietaryPreferences' => self::DIETARY_PREFERENCES,
+            'targets' => $calculator->calculate($profile),
         ]);
     }
 
@@ -93,6 +99,20 @@ class NutritionProfileController extends Controller
                 Rule::in(array_keys(self::DIETARY_PREFERENCES)),
             ],
             
+            'calculation_sex' => [
+                'nullable',
+                Rule::in(['male', 'female']),
+            ],
+
+            'planning_context' => [
+                'nullable',
+                Rule::in(['general_adult', 'needs_review']),
+            ],
+
+            'resistance_training' => [
+                'nullable',
+                'boolean',
+            ],
             'allergies' => ['nullable', 'string', 'max:2000'],
             'foods_to_avoid' => ['nullable', 'string', 'max:2000'],
         ]);

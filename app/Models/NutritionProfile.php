@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'target_weight_kg',
     'meals_per_day',
     'cooking_minutes',
+    'calculation_sex',
+    'planning_context',
+    'resistance_training',
 ])]
 class NutritionProfile extends Model
 {
@@ -30,6 +33,7 @@ class NutritionProfile extends Model
             'target_weight_kg' => 'decimal:2',
             'meals_per_day' => 'integer',
             'cooking_minutes' => 'integer',
+            'resistance_training' => 'boolean',
         ];
     }
 

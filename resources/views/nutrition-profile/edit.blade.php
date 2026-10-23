@@ -685,6 +685,9 @@
                         </div>
                     </details>
                 </section>
+                
+                @include('nutrition-profile.calculation-details')
+                @include('nutrition-profile.targets')
             </div>
 
             <footer class="pf-save">
