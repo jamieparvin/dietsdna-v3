@@ -52,7 +52,8 @@ Ingredient quantities are grams for the WHOLE recipe, not per serving.
 Use realistic quantities with at most two decimal places.
 Use each ingredient once per recipe.
 Provide a descriptive name, short description, servings, and clear numbered
-cooking instructions as one string.
+cooking instructions as one string, with each numbered step on a separate line.
+Use actual newline characters between steps.
 
 Preparation state matters:
 - Raw ingredient entries mean quantities are weighed before cooking.

@@ -578,6 +578,16 @@
                     >
                         Nutrition profile
                     </a>
+
+                    <a
+                        href="{{ route('food-preferences.edit') }}"
+                        class="nav-link {{ request()->routeIs('food-preferences.*') ? 'active' : '' }}"
+                        @if (request()->routeIs('food-preferences.*'))
+                            aria-current="page"
+                        @endif
+                    >
+                        Food preferences
+                    </a>
                 @endif
 
                     @foreach ($upcomingItems as $item)

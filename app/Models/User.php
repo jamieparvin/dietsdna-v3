@@ -30,4 +30,14 @@ class User extends Authenticatable
         return $this->hasOne(NutritionProfile::class);
     }
 
+    public function foodPreferences(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(
+            \App\Models\Ingredient::class,
+            'ingredient_user_preferences'
+        )
+            ->withPivot('preference')
+            ->withTimestamps();
+    }
+
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\RecipeController;
 use App\Http\Controllers\Admin\RecipeGenerationController;
 use App\Http\Controllers\Admin\NutritionCalculatorSettingsController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\FoodPreferenceController;
 use App\Http\Controllers\NutritionProfileController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Support\Facades\Route;
@@ -79,4 +80,10 @@ Route::middleware('auth')->group(function () {
 
     Route::put('/nutrition-profile', [NutritionProfileController::class, 'update'])
         ->name('nutrition-profile.update');
+
+    Route::get('/food-preferences', [FoodPreferenceController::class, 'edit'])
+        ->name('food-preferences.edit');
+
+    Route::put('/food-preferences', [FoodPreferenceController::class, 'update'])
+        ->name('food-preferences.update');
 });
