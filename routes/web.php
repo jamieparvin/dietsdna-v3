@@ -44,10 +44,10 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])
         ])->name('ingredients.import.confirm');
 
         Route::resource('ingredients', IngredientController::class)
-            ->only(['index', 'create', 'store', 'edit', 'update']);
+            ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
         Route::resource('recipes', RecipeController::class)
-            ->only(['index', 'create', 'store', 'edit', 'update']); 
+            ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     });    
 
 Route::middleware('auth')->group(function () {

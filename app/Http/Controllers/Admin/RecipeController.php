@@ -56,6 +56,15 @@ class RecipeController extends Controller
             ->with('status', 'Recipe created successfully.');
     }
 
+    public function show(Recipe $recipe)
+    {
+        $recipe->load('ingredients');
+
+        $totals = $recipe->nutritionTotals();
+
+        return view('admin.recipes.show', compact('recipe', 'totals'));
+    }
+
     public function edit(Recipe $recipe)
     {
         $recipe->load('ingredients');
@@ -70,6 +79,21 @@ class RecipeController extends Controller
         return redirect()
             ->route('admin.recipes.edit', $recipe)
             ->with('status', 'Recipe updated successfully.');
+    }
+
+    public function destroy(Recipe $recipe)
+    {
+        DB::transaction(function () use ($recipe) {
+            $lockedRecipe = Recipe::query()
+                ->lockForUpdate()
+                ->findOrFail($recipe->id);
+
+            $lockedRecipe->delete();
+        });
+
+        return redirect()
+            ->route('admin.recipes.index')
+            ->with('status', 'Recipe deleted successfully.');
     }
 
     private function form(Recipe $recipe)

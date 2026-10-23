@@ -182,4 +182,31 @@ class IngredientController extends Controller
 
         return $validator->validate();
     }
+
+    public function destroy(Ingredient $ingredient)
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($ingredient) {
+            $lockedIngredient = Ingredient::query()
+                ->lockForUpdate()
+                ->findOrFail($ingredient->id);
+
+            $isUsed = \Illuminate\Support\Facades\DB::table('ingredient_recipe')
+                ->where('ingredient_id', $lockedIngredient->id)
+                ->exists();
+
+            if ($isUsed) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'ingredient' =>
+                        'This ingredient is used in a recipe and cannot be deleted. '
+                        .'Remove it from the recipe first, or mark it inactive.',
+                ]);
+            }
+
+            $lockedIngredient->delete();
+        });
+
+        return redirect()
+            ->route('admin.ingredients.index')
+            ->with('status', 'Ingredient deleted successfully.');
+    }
 }

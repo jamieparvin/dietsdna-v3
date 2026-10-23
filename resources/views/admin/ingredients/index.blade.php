@@ -231,6 +231,22 @@
                                 >
                                     Edit
                                 </a>
+                            <form
+                                    method="POST"
+                                    action="{{ route('admin.ingredients.destroy', $ingredient) }}"
+                                    onsubmit="return confirm('Permanently delete this ingredient? Ingredients used in recipes cannot be deleted.');"
+                                    style="display: inline-block; margin-left: 12px;"
+                                >
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button
+                                        type="submit"
+                                        style="background: #fff0ee; color: #8b2920; padding: 8px 12px;"
+                                    >
+                                        Delete
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     @empty

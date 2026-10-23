@@ -73,11 +73,33 @@
                                     {{ ucfirst($recipe->status) }}
                                 </span>
                             </td>
-                            <td>
-                                <a href="{{ route('admin.recipes.edit', $recipe) }}">
-                                    Edit
-                                </a>
-                            </td>
+                                <td>
+                                    <div class="recipe-actions" style="justify-content: flex-start;">
+                                        <a href="{{ route('admin.recipes.show', $recipe) }}">
+                                            View
+                                        </a>
+
+                                        <a href="{{ route('admin.recipes.edit', $recipe) }}">
+                                            Edit
+                                        </a>
+
+                                        <form
+                                            method="POST"
+                                            action="{{ route('admin.recipes.destroy', $recipe) }}"
+                                            onsubmit="return confirm('Permanently delete this recipe? This cannot be undone.');"
+                                        >
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button
+                                                type="submit"
+                                                style="background: #fff0ee; color: #8b2920; padding: 8px 12px;"
+                                            >
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
                         </tr>
                     @empty
                         <tr>
