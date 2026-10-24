@@ -6,58 +6,69 @@ use InvalidArgumentException;
 
 class MealTargetAllocator
 {
-    public const VERSION = 'meal-allocation-v1';
+    public const VERSION = 'meal-allocation-v2';
 
-    public function allocate(array $daily, int $mealCount): array
-    {
-        $patterns = [
-            2 => [
-                'lunch' => [45, 1],
-                'dinner' => [55, 1],
-            ],
-            3 => [
-                'breakfast' => [25, 1],
-                'lunch' => [35, 1],
-                'dinner' => [40, 1],
-            ],
-            4 => [
-                'breakfast' => [25, 1],
-                'lunch' => [30, 1],
-                'dinner' => [35, 1],
-                'snack' => [10, 1],
-            ],
-            5 => [
-                'breakfast' => [20, 1],
-                'lunch' => [30, 1],
-                'dinner' => [30, 1],
-                'snack' => [10, 2],
-            ],
-            6 => [
-                'breakfast' => [20, 1],
-                'lunch' => [25, 1],
-                'dinner' => [25, 1],
-                'snack' => [10, 3],
-            ],
-        ];
+    private const SNACK_PERCENT = 10;
 
-        if (! isset($patterns[$mealCount])) {
+    public function allocate(
+        array $daily,
+        int $mealCount,
+        int $snackCount = 0
+    ): array {
+        if (! in_array($mealCount, [2, 3, 4, 5, 6], true)) {
             throw new InvalidArgumentException('Unsupported meals per day.');
         }
 
+        if (! in_array($snackCount, [0, 1, 2], true)) {
+            throw new InvalidArgumentException('Unsupported snack count.');
+        }
+
+        $slots = MealPlanSlots::forCount($mealCount, $snackCount);
+
+        $mealPercent = (
+            100 - $snackCount * self::SNACK_PERCENT
+        ) / $mealCount;
+
+        $labels = [
+            'breakfast' => 'Breakfast',
+            'lunch' => 'Lunch / additional meal',
+            'dinner' => 'Dinner / additional meal',
+            'snack' => 'Optional snack',
+        ];
+
         $result = [];
 
-        foreach ($patterns[$mealCount] as $type => [$percent, $count]) {
+        foreach ($slots as $slot => $slotLabel) {
+            $type = MealPlanSlots::typeForSlot($slot);
+
+            if (isset($result[$type])) {
+                $result[$type]['count']++;
+
+                continue;
+            }
+
+            $percent = $type === 'snack'
+                ? self::SNACK_PERCENT
+                : $mealPercent;
+
             $fraction = $percent / 100;
 
             $result[$type] = [
-                'label' => ucfirst($type),
+                'label' => $labels[$type],
                 'percent' => $percent,
-                'count' => $count,
+                'count' => 1,
                 'targets' => [
-                    'energy_kcal' => $daily['calories_kcal'] * $fraction,
-                    'protein_g' => $daily['protein_g'] * $fraction,
-                    'carbohydrate_g' => $daily['carbohydrate_g'] * $fraction,
-                    'fat_g' => $daily['fat_g'] * $fraction,
+                    'energy_kcal' =>
+                        $daily['calories_kcal'] * $fraction,
+
+                    'protein_g' =>
+                        $daily['protein_g'] * $fraction,
+
+                    'carbohydrate_g' =>
+                        $daily['carbohydrate_g'] * $fraction,
+
+                    'fat_g' =>
+                        $daily['fat_g'] * $fraction,
                 ],
             ];
         }

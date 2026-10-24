@@ -9,7 +9,7 @@ class WeeklyMealSchedule
 {
     public static function typeForSlot(string $slot): string
     {
-        return str_starts_with($slot, 'snack_') ? 'snack' : $slot;
+        return MealPlanSlots::typeForSlot($slot);
     }
 
     public function build(string $startDate, array $slots, array $pools, array $occupied): array

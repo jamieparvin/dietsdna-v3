@@ -32,11 +32,24 @@ class WeeklyMealScheduleTest extends TestCase
         }
     }
 
-    public function test_snacks_on_the_same_day_use_different_options(): void
+    public function test_optional_snacks_on_the_same_day_use_different_options(): void
+    {
+        $rows = (new WeeklyMealSchedule())->build('2026-10-26', MealPlanSlots::forCount(6, 2), $this->pools(), []);
+        $this->assertCount(56, $rows);
+        $snacks = array_filter($rows, fn ($row) => $row['date'] === '2026-10-26' && $row['meal_type'] === 'snack');
+        $this->assertCount(2, array_unique(array_map(fn ($row) => $row['snapshot']['name'], $snacks)));
+    }
+
+    public function test_six_full_meals_use_main_meal_pools_without_snacks_or_repeated_options_on_a_day(): void
     {
         $rows = (new WeeklyMealSchedule())->build('2026-10-26', MealPlanSlots::forCount(6), $this->pools(), []);
-        $snacks = array_filter($rows, fn ($row) => $row['date'] === '2026-10-26' && $row['meal_type'] === 'snack');
-        $this->assertCount(3, array_unique(array_map(fn ($row) => $row['snapshot']['name'], $snacks)));
+        $this->assertCount(42, $rows);
+        $this->assertNotContains('snack', array_column($rows, 'meal_type'));
+        $monday = array_filter($rows, fn ($row) => $row['date'] === '2026-10-26');
+        $this->assertCount(6, array_unique(array_map(fn ($row) => $row['snapshot']['name'], $monday)));
+        foreach ($rows as $row) {
+            $this->assertSame(MealPlanSlots::typeForSlot($row['slot']), $row['meal_type']);
+        }
     }
 
     public function test_occupied_slots_are_omitted_and_quantities_are_unchanged(): void

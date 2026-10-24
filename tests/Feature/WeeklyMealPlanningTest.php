@@ -23,6 +23,7 @@ class WeeklyMealPlanningTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+    private int $generationCalls = 0;
     private $ingredients;
 
     // Refuse migrations unless this suite is using disposable in-memory SQLite.
@@ -38,7 +39,7 @@ class WeeklyMealPlanningTest extends TestCase
         parent::setUp();
         Http::preventStrayRequests();
         $this->owner = User::factory()->create();
-        $this->owner->nutritionProfile()->create(['meals_per_day' => 5]);
+        $this->owner->nutritionProfile()->create(['meals_per_day' => 3, 'snacks_per_day' => 2]);
         $this->ingredients = collect();
 
         foreach (['Broccoli', 'Carrots'] as $index => $name) {
@@ -59,11 +60,14 @@ class WeeklyMealPlanningTest extends TestCase
             $mock->shouldReceive('context')->andReturnUsing(fn ($user, $type = 'lunch') => [
                 'signature' => 'test-catalog', 'ingredients' => $this->ingredients,
                 'meal_count' => (int) $user->nutritionProfile()->first()->meals_per_day,
+                'snack_count' => (int) $user->nutritionProfile()->first()->snacks_per_day,
                 'meal_type' => $type,
+                'targets' => ['calories_kcal' => 500, 'protein_g' => 50, 'carbohydrate_g' => 40, 'fat_g' => 10],
             ]);
-            $mock->shouldReceive('generate')->andReturnUsing(fn ($user, $type) => [
-                'ideas' => [$this->idea($type.'-1'), $this->idea($type.'-2'), $this->idea($type.'-3')],
-            ]);
+            $mock->shouldReceive('generate')->andReturnUsing(function ($user, $type) {
+                $this->generationCalls++;
+                return ['ideas' => [$this->idea($type.'-1'), $this->idea($type.'-2'), $this->idea($type.'-3')]];
+            });
         });
     }
 
@@ -130,23 +134,166 @@ class WeeklyMealPlanningTest extends TestCase
         $this->assertDatabaseCount('saved_meals', 0);
     }
 
-    public function test_confirmation_preserves_existing_and_newly_occupied_slots_and_is_idempotent(): void
+    public function test_five_full_meals_generate_thirty_five_main_meals_without_snacks(): void
+    {
+        $this->owner->nutritionProfile()->update(['meals_per_day' => 5, 'snacks_per_day' => 0]);
+        $draft = $this->draft();
+        (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
+        $draft->refresh();
+        $this->assertSame('ready', $draft->status);
+        $this->assertCount(35, $draft->proposals);
+        $this->assertSame(3, $draft->completed_types);
+        $this->assertArrayHasKey('meal_2', $draft->slots);
+        $this->assertArrayHasKey('meal_4', $draft->slots);
+        $this->assertNotContains('snack', array_column($draft->proposals, 'meal_type'));
+    }
+
+    public function test_six_full_meals_and_two_optional_snacks_generate_fifty_six_slots(): void
+    {
+        $this->owner->nutritionProfile()->update(['meals_per_day' => 6, 'snacks_per_day' => 2]);
+        $draft = $this->draft();
+        (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
+        $draft->refresh();
+        $this->assertSame('ready', $draft->status);
+        $this->assertCount(56, $draft->proposals);
+        $this->assertSame(4, $draft->completed_types);
+        $this->assertCount(14, array_filter($draft->proposals, fn ($row) => $row['meal_type'] === 'snack'));
+    }
+
+    public function test_snack_setting_saves_for_the_authenticated_user_only(): void
+    {
+        $other = User::factory()->create();
+        $other->nutritionProfile()->create(['meals_per_day' => 5, 'snacks_per_day' => 0]);
+        $this->actingAs($this->owner)->put(route('nutrition-profile.update'), ['snacks_per_day' => 1])
+            ->assertRedirect(route('nutrition-profile.edit'));
+        $this->assertSame(1, $this->owner->nutritionProfile()->first()->snacks_per_day);
+        $this->assertSame(0, $other->nutritionProfile()->first()->snacks_per_day);
+    }
+
+    public function test_invalid_snack_setting_is_rejected_without_changing_the_profile(): void
+    {
+        $this->actingAs($this->owner)->put(route('nutrition-profile.update'), ['snacks_per_day' => 3])
+            ->assertSessionHasErrors('snacks_per_day');
+        $this->assertSame(2, $this->owner->nutritionProfile()->first()->snacks_per_day);
+    }
+
+    public function test_changing_optional_snacks_invalidates_an_existing_preview(): void
+    {
+        $draft = $this->draft();
+        (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
+        $this->owner->nutritionProfile()->update(['snacks_per_day' => 0]);
+        $this->actingAs($this->owner)->post(route('weekly-meals.confirm', $draft->id))->assertSessionHasErrors('week');
+        $this->assertDatabaseCount('meal_plan_entries', 0);
+    }
+
+    public function test_confirmation_preserves_existing_slots_and_is_idempotent(): void
     {
         $old = $this->saved($this->owner, 'Existing breakfast');
         $existing = $this->entry($old, 'breakfast');
         $draft = $this->draft();
         (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
         $this->assertCount(34, $draft->fresh()->proposals);
-        $later = $this->entry($this->saved($this->owner, 'Added while previewing'), 'lunch');
         $planner = app(WeeklyMealPlanner::class);
         $result = $planner->confirm($draft->id, $this->owner);
-        $this->assertSame(33, $result['added']);
-        $this->assertSame(1, $result['skipped']);
+        $this->assertSame(34, $result['added']);
+        $this->assertSame(0, $result['skipped']);
         $this->assertDatabaseCount('meal_plan_entries', 35);
         $this->assertEquals($old->snapshot, $existing->fresh()->snapshot);
-        $this->assertSame($later->saved_meal_id, $later->fresh()->saved_meal_id);
         $this->assertTrue($planner->confirm($draft->id, $this->owner)['already_confirmed']);
         $this->assertDatabaseCount('meal_plan_entries', 35);
+    }
+
+    private function failedStoredDraft(): WeeklyMealDraft
+    {
+        $draft = $this->draft();
+        $helper = app(PlannedMealSnapshot::class);
+        $pools = [];
+        foreach (['breakfast', 'lunch', 'dinner', 'snack'] as $type) {
+            foreach (range(1, 3) as $number) {
+                $idea = $this->idea($type.'-'.$number);
+                $idea['instructions'] = 'Cook 80g of the ingredients for 5 minutes.';
+                $pools[$type][] = $helper->fromIdea($idea, $this->ingredients);
+            }
+        }
+        $draft->update(['status' => 'failed', 'generated' => $pools, 'error' => 'Old amount error']);
+        return $draft->fresh();
+    }
+
+    public function test_failed_stored_options_can_be_rebalanced_without_ai_or_plan_writes(): void
+    {
+        $draft = $this->failedStoredDraft();
+        app(WeeklyMealPlanner::class)->rebalanceStored($draft);
+        $this->assertSame(0, $this->generationCalls);
+        $draft->refresh();
+        $this->assertSame('ready', $draft->status);
+        $this->assertNull($draft->error);
+        $this->assertCount(35, $draft->proposals);
+        $this->assertStringContainsString('the listed amount of', $draft->proposals[0]['snapshot']['instructions']);
+        $this->assertDatabaseCount('meal_plan_entries', 0);
+        $this->assertDatabaseCount('saved_meals', 0);
+    }
+
+    public function test_recovery_rejects_a_changed_profile_without_ai(): void
+    {
+        $draft = $this->failedStoredDraft();
+        $this->owner->nutritionProfile()->update(['snacks_per_day' => 0]);
+        $this->expectException(ValidationException::class);
+        try {
+            app(WeeklyMealPlanner::class)->rebalanceStored($draft);
+        } finally {
+            $this->assertSame(0, $this->generationCalls);
+        }
+    }
+
+    public function test_recovery_requires_complete_stored_pools_without_ai(): void
+    {
+        $draft = $this->failedStoredDraft();
+        $draft->update(['generated' => []]);
+        $this->expectException(ValidationException::class);
+        try {
+            app(WeeklyMealPlanner::class)->rebalanceStored($draft);
+        } finally {
+            $this->assertSame(0, $this->generationCalls);
+        }
+    }
+
+    public function test_recovery_does_not_change_a_confirmed_preview(): void
+    {
+        $draft = $this->failedStoredDraft();
+        $draft->update(['status' => 'confirmed']);
+        try {
+            app(WeeklyMealPlanner::class)->rebalanceStored($draft);
+            $this->fail('Confirmed previews cannot be recovered.');
+        } catch (ValidationException $exception) {
+            $this->assertSame('confirmed', $draft->fresh()->status);
+            $this->assertSame(0, $this->generationCalls);
+        }
+    }
+
+    public function test_plan_changes_after_balancing_require_a_new_preview_and_preserve_existing_meals(): void
+    {
+        $draft = $this->draft();
+        (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
+        $later = $this->entry($this->saved($this->owner, 'Added while previewing'), 'lunch');
+        $this->actingAs($this->owner)->post(route('weekly-meals.confirm', $draft->id))->assertSessionHasErrors('week');
+        $this->assertDatabaseCount('meal_plan_entries', 1);
+        $this->assertDatabaseCount('saved_meals', 1);
+        $this->assertNotNull($later->fresh());
+    }
+
+    public function test_every_generated_day_passes_the_daily_balance_check_after_rounding(): void
+    {
+        $this->owner->nutritionProfile()->update(['meals_per_day' => 6, 'snacks_per_day' => 2]);
+        $draft = $this->draft();
+        (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
+        $draft->refresh();
+        $this->assertSame('ready', $draft->status);
+        app(\App\Services\Meals\MealPortionBalancer::class)->assertFits($draft->proposals, [], [
+            'calories_kcal' => 500, 'protein_g' => 50, 'carbohydrate_g' => 40, 'fat_g' => 10,
+        ]);
+        foreach ($draft->proposals as $proposal) {
+            $this->assertSame('portion-balance-v1', $proposal['snapshot']['portion_balance']['version']);
+        }
     }
 
     public function test_changed_profile_rejects_confirmation_without_writing_any_meals(): void

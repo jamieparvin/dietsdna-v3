@@ -90,15 +90,8 @@ class WeeklyMealPlanController extends Controller
             $totals = ['energy_kcal' => 0, 'protein_g' => 0, 'carbohydrate_g' => 0, 'fat_g' => 0];
 
             $orderedSlots = collect($draft->slots)->sortBy(
-                fn ($label, $slot) => match ($slot) {
-                    'breakfast' => 1,
-                    'lunch' => 2,
-                    'dinner' => 3,
-                    'snack_1' => 4,
-                    'snack_2' => 5,
-                    'snack_3' => 6,
-                    default => 99,
-                }
+                fn ($label, $slot) =>
+                    \App\Services\Meals\MealPlanSlots::displayOrder($slot)
             );
 
             foreach ($orderedSlots as $slot => $label) {

@@ -59,7 +59,12 @@ class MealPlanSwapController extends Controller
             }
 
             $profile = $user->nutritionProfile()->first();
-            if (! isset(MealPlanSlots::forCount((int) $profile?->meals_per_day)[$planned->slot])) {
+            $slots = MealPlanSlots::forCount(
+                (int) $profile?->meals_per_day,
+                (int) ($profile?->snacks_per_day ?? 0)
+            );
+
+            if (! isset($slots[$planned->slot])) {
                 throw ValidationException::withMessages(['meal' => 'This slot belongs to a previous meal pattern. Remove it from the plan instead.']);
             }
 

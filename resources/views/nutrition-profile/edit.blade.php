@@ -471,8 +471,19 @@
                         </div>
 
                         <div>
-                            <dt>Meals per day</dt>
-                            <dd>{{ $profile?->meals_per_day ?? 'Not set' }}</dd>
+                            <dt>Daily meal pattern</dt>
+                            <dd>
+                                @if($profile?->meals_per_day)
+                                    {{ $profile->meals_per_day }} full meals ·
+                                    {{ (int) $profile->snacks_per_day === 0
+                                        ? 'No snacks'
+                                        : $profile->snacks_per_day.' '.(
+                                            (int) $profile->snacks_per_day === 1 ? 'snack' : 'snacks'
+                                        ) }}
+                                @else
+                                    Not set
+                                @endif
+                            </dd>
                         </div>
 
                         <div class="pf-span">
@@ -493,6 +504,7 @@
                             'activity_level',
                             'target_weight_kg',
                             'meals_per_day',
+                            'snacks_per_day',
                             'cooking_minutes',
                         ])) open @endif
                     >
@@ -550,7 +562,7 @@
 
                             <div class="pf-fields">
                                 <div>
-                                    <label for="meals_per_day">Preferred meals per day</label>
+                                    <label for="meals_per_day">Full meals per day</label>
 
                                     <select id="meals_per_day" name="meals_per_day">
                                         <option value="">Choose your preference</option>
@@ -564,6 +576,41 @@
                                             </option>
                                         @endforeach
                                     </select>
+
+                                    <p class="pf-note">
+                                        Choose your number of full meals. Snacks are selected separately.
+                                    </p>
+
+                                    <label for="snacks_per_day" style="display:block; margin-top:16px;">
+                                        Optional snacks
+                                    </label>
+
+                                    <select
+                                        id="snacks_per_day"
+                                        name="snacks_per_day"
+                                        aria-describedby="snacks-help"
+                                    >
+                                        @foreach([0 => 'No snacks', 1 => '1 snack per day', 2 => '2 snacks per day'] as $value => $label)
+                                            <option
+                                                value="{{ $value }}"
+                                                @selected(
+                                                    (string) old('snacks_per_day', $profile?->snacks_per_day ?? 0)
+                                                    === (string) $value
+                                                )
+                                            >
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+
+                                    <p class="pf-note" id="snacks-help">
+                                        Snacks share your daily calorie and macro budget.
+                                        They do not increase your daily targets.
+                                    </p>
+
+                                    @error('snacks_per_day')
+                                        <p class="pf-note" role="alert">{{ $message }}</p>
+                                    @enderror
                                 </div>
 
                                 <div>

@@ -23,7 +23,11 @@
                     <button class="wm-button" id="weekly-start-button">Generate weekly preview</button>
                 </div>
             </form>
-            <p class="wm-muted">The preview runs Monday to Sunday. Generation creates three options per meal type and rotates them through the week; meals will repeat. Your quantities are not increased or adjusted. Actual daily nutrition will be shown for review.</p>
+            <p class="wm-muted">
+                The preview runs Monday to Sunday. Meal ideas repeat across the week.
+                Ingredient quantities are adjusted to bring new daily plans close to
+                your calorie and macro guides. Actual totals are shown before you confirm.
+            </p>
             <p class="wm-muted">Generation uses your configured AI account and can take several minutes. It runs in the background. Nothing is added to your plan until you confirm the preview.</p>
         </section>
     @endif

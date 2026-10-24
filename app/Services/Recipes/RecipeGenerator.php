@@ -72,6 +72,10 @@ PROMPT;
 
         try {
             $response = Http::withToken($key)
+                ->withOptions([
+                    'version' => 1.1,
+                    'force_ip_resolve' => 'v4',
+                ])
                 ->acceptJson()
                 ->connectTimeout(10)
                 ->timeout(55)

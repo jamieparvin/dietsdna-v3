@@ -83,6 +83,13 @@ class NutritionProfileController extends Controller
                 Rule::in([2, 3, 4, 5, 6]),
             ],
 
+            'snacks_per_day' => [
+                'sometimes',
+                'required',
+                'integer',
+                Rule::in([0, 1, 2]),
+            ],
+
             'cooking_minutes' => [
                 'nullable',
                 'integer',

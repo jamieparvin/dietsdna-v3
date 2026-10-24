@@ -36,7 +36,8 @@ class MealPlanController extends Controller
         $profile = $request->user()->nutritionProfile()->first();
 
         $slots = MealPlanSlots::forCount(
-            (int) $profile?->meals_per_day
+            (int) $profile?->meals_per_day,
+            (int) ($profile?->snacks_per_day ?? 0)
         );
 
         $weekEntries = MealPlanEntry::query()
@@ -144,7 +145,8 @@ class MealPlanController extends Controller
             $profile = $user->nutritionProfile()->first();
 
             $slots = MealPlanSlots::forCount(
-                (int) $profile?->meals_per_day
+                (int) $profile?->meals_per_day,
+                (int) ($profile?->snacks_per_day ?? 0)
             );
 
             if (! isset($slots[$data['slot']])) {
