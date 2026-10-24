@@ -30,15 +30,19 @@ class WeeklyMealPlanner
         );
 
         // Include fields omitted by older generator signatures, e.g. cooking time.
-        $signature = hash('sha256', json_encode([
+        $signatureInput = [
             'version' => 'weekly-planning-v3-full-meals',
             'portion_balance' => MealPortionBalancer::VERSION,
             'generator_signature' => $context['signature'],
             'profile' => $profile?->getAttributes(),
             'slots' => $slots,
-        ], JSON_THROW_ON_ERROR));
+        ];
+        $signature = hash('sha256', json_encode($signatureInput, JSON_THROW_ON_ERROR));
+        // Recovery can migrate v1 previews only if ALL source inputs still match.
+        $signatureInput['portion_balance'] = 'portion-balance-v1';
+        $legacySignature = hash('sha256', json_encode($signatureInput, JSON_THROW_ON_ERROR));
 
-        return compact('context', 'slots', 'signature');
+        return compact('context', 'slots', 'signature', 'legacySignature');
     }
 
     public function assertCurrent(WeeklyMealDraft $draft, User $user): array
@@ -98,20 +102,25 @@ class WeeklyMealPlanner
         $this->preparePreview($draft, $user, $pools, 'generating');
     }
 
-    /** Reuse a failed draft's already generated options. Never calls AI. */
+    /** Rebuild an unconfirmed stored preview. Never calls AI or writes planned/saved meals. */
     public function rebalanceStored(WeeklyMealDraft $draft): void
     {
-        $lock = Cache::lock('meal-ideas:user:'.$draft->user_id, 120);
+        $lock = Cache::lock('meal-ideas:user:'.$draft->user_id, 600);
         if (! $lock->get()) {
             $this->fail('Meal generation is already running for this user. Wait before rebalancing stored options.');
         }
+        $claimed = false;
         try {
             $draft->refresh();
-            if ($draft->status !== 'failed') {
-                $this->fail('Only a failed preview can be rebuilt from stored options.');
+            if (! in_array($draft->status, ['failed', 'ready'], true)) {
+                $this->fail('Only a failed or ready unconfirmed preview can be rebuilt.');
             }
             $user = User::query()->findOrFail($draft->user_id);
-            $source = $this->assertCurrent($draft, $user);
+            $source = $this->source($user);
+            if (! hash_equals($source['signature'], $draft->source_signature)
+                && ! hash_equals($source['legacySignature'], $draft->source_signature)) {
+                $this->fail('Your profile, preferences or eligible ingredients changed. Generate a new weekly preview.');
+            }
             $pools = $draft->generated ?? [];
             $types = array_unique(array_map(
                 fn ($slot) => WeeklyMealSchedule::typeForSlot($slot),
@@ -127,11 +136,29 @@ class WeeklyMealPlanner
                     }
                 }
             }
-            $this->preparePreview($draft, $user, $pools, 'failed');
-        } catch (ValidationException $exception) {
-            WeeklyMealDraft::query()->whereKey($draft->id)->where('status', 'failed')->update([
-                'error' => collect($exception->errors())->flatten()->first(),
-            ]);
+            // The same user/draft locks as confirmation prevent an already confirmed
+            // preview being claimed. While generating, confirmation is rejected.
+            DB::transaction(function () use ($draft, $source, $user) {
+                DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
+                $locked = WeeklyMealDraft::query()->where('user_id', $user->id)->lockForUpdate()->findOrFail($draft->id);
+                if (! in_array($locked->status, ['failed', 'ready'], true)
+                    || $locked->source_signature !== $draft->source_signature) {
+                    $this->fail('This preview changed while rebuilding was requested. Reload it.');
+                }
+                $locked->update(['status' => 'generating', 'source_signature' => $source['signature'], 'error' => null]);
+            });
+            $claimed = true;
+            $draft->refresh();
+            $this->preparePreview($draft, $user, $pools, 'generating');
+        } catch (\Throwable $exception) {
+            if ($claimed) {
+                $message = $exception instanceof ValidationException
+                    ? collect($exception->errors())->flatten()->first()
+                    : 'Stored options could not be rebuilt. No new meals were saved.';
+                WeeklyMealDraft::query()->whereKey($draft->id)->where('status', 'generating')->update([
+                    'status' => 'failed', 'error' => $message,
+                ]);
+            }
             throw $exception;
         } finally {
             $lock->release();
@@ -142,13 +169,6 @@ class WeeklyMealPlanner
     {
         $this->assertCurrent($draft, $user);
         $state = $this->planState($draft);
-        $proposals = $this->schedule->build(
-            $draft->start_date->toDateString(),
-            $draft->slots,
-            $pools,
-            array_map(fn ($entry) => $entry['date'].'|'.$entry['slot'], $state['fixed'])
-        );
-
         $source = $this->assertCurrent($draft, $user);
         $targets = array_intersect_key($source['context']['targets'], array_flip([
             'calories_kcal', 'protein_g', 'carbohydrate_g', 'fat_g',
@@ -156,7 +176,10 @@ class WeeklyMealPlanner
         $catalog = $source['context']['ingredients']->mapWithKeys(
             fn ($ingredient) => [(int) $ingredient->id => $ingredient->getAttributes()]
         )->all();
-        $proposals = $this->balancer->balance($proposals, $state['fixed'], $catalog, $targets);
+        $proposals = $this->schedule->buildBalanced(
+            $draft->start_date->toDateString(), $draft->slots, $pools,
+            $state['fixed'], $catalog, $targets, $this->balancer
+        );
         foreach ($proposals as &$proposal) {
             $proposal['plan_fingerprint'] = $state['fingerprint'];
         }

@@ -1,0 +1,1643 @@
+{
+  "catalog": {
+    "3": {
+      "id": 3,
+      "name": "Turkey breast, raw",
+      "category": "Meat & poultry",
+      "sub_category": "Poultry",
+      "preparation_state": "raw",
+      "energy_kcal": "114.00000",
+      "protein_g": "23.66000",
+      "carbohydrate_g": "0.14000",
+      "sugars_g": "0.05000",
+      "fat_g": "1.48000",
+      "saturates_g": "0.28900",
+      "fibre_g": "0.00000",
+      "salt_g": "0.28250"
+    },
+    "8": {
+      "id": 8,
+      "name": "Beef mince, extra lean, raw",
+      "category": "Meat & poultry",
+      "sub_category": "Beef",
+      "preparation_state": "raw",
+      "energy_kcal": "130.00000",
+      "protein_g": "21.90000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "4.20000",
+      "saturates_g": "2.08000",
+      "fibre_g": "0.00000",
+      "salt_g": "0.22500"
+    },
+    "12": {
+      "id": 12,
+      "name": "Chicken thigh, raw",
+      "category": "Meat & poultry",
+      "sub_category": "Poultry",
+      "preparation_state": "raw",
+      "energy_kcal": "121.00000",
+      "protein_g": "19.66000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "4.12000",
+      "saturates_g": "1.09700",
+      "fibre_g": "0.00000",
+      "salt_g": "0.23750"
+    },
+    "14": {
+      "id": 14,
+      "name": "Chicken breast, cooked",
+      "category": "Meat & poultry",
+      "sub_category": "Poultry",
+      "preparation_state": "roasted",
+      "energy_kcal": "165.00000",
+      "protein_g": "31.02000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "3.57000",
+      "saturates_g": "1.01000",
+      "fibre_g": "0.00000",
+      "salt_g": "0.18500"
+    },
+    "15": {
+      "id": 15,
+      "name": "Turkey breast fillet, grilled",
+      "category": "Meat & poultry",
+      "sub_category": "Poultry",
+      "preparation_state": "grilled",
+      "energy_kcal": "155.00000",
+      "protein_g": "35.00000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "1.70000",
+      "saturates_g": "0.60000",
+      "fibre_g": "0.00000",
+      "salt_g": "0.22500"
+    },
+    "16": {
+      "id": 16,
+      "name": "Lamb leg, roasted, lean",
+      "category": "Meat & poultry",
+      "sub_category": "Lamb",
+      "preparation_state": "roasted",
+      "energy_kcal": "203.00000",
+      "protein_g": "29.70000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "9.40000",
+      "saturates_g": "3.80000",
+      "fibre_g": "0.00000",
+      "salt_g": "0.15750"
+    },
+    "19": {
+      "id": 19,
+      "name": "Beef mince, extra lean, stewed",
+      "category": "Meat & poultry",
+      "sub_category": "Beef",
+      "preparation_state": "stewed",
+      "energy_kcal": "137.00000",
+      "protein_g": "24.70000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "4.20000",
+      "saturates_g": "1.83000",
+      "fibre_g": "0.00000",
+      "salt_g": "0.18750"
+    },
+    "22": {
+      "id": 22,
+      "name": "Turkey mince, stewed",
+      "category": "Meat & poultry",
+      "sub_category": "Poultry",
+      "preparation_state": "stewed",
+      "energy_kcal": "176.00000",
+      "protein_g": "28.60000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "6.80000",
+      "saturates_g": "2.00000",
+      "fibre_g": "0.00000",
+      "salt_g": "0.11250"
+    },
+    "23": {
+      "id": 23,
+      "name": "Chicken thigh, casseroled",
+      "category": "Meat & poultry",
+      "sub_category": "Poultry",
+      "preparation_state": "casseroled",
+      "energy_kcal": "180.00000",
+      "protein_g": "25.60000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "8.60000",
+      "saturates_g": "2.40000",
+      "fibre_g": "0.00000",
+      "salt_g": "0.10000"
+    },
+    "27": {
+      "id": 27,
+      "name": "Rolled oats (porridge oats)",
+      "category": "Carbohydrates",
+      "sub_category": "Oats",
+      "preparation_state": "dry",
+      "energy_kcal": "379.00000",
+      "protein_g": "13.15000",
+      "carbohydrate_g": "67.70000",
+      "sugars_g": "0.99000",
+      "fat_g": "6.52000",
+      "saturates_g": "1.11000",
+      "fibre_g": "10.10000",
+      "salt_g": "0.01500"
+    },
+    "29": {
+      "id": 29,
+      "name": "Sweet potatoes",
+      "category": "Carbohydrates",
+      "sub_category": "Potatoes",
+      "preparation_state": "raw",
+      "energy_kcal": "86.00000",
+      "protein_g": "1.57000",
+      "carbohydrate_g": "20.12000",
+      "sugars_g": "4.18000",
+      "fat_g": "0.05000",
+      "saturates_g": "0.01800",
+      "fibre_g": "3.00000",
+      "salt_g": "0.13750"
+    },
+    "30": {
+      "id": 30,
+      "name": "Quinoa",
+      "category": "Carbohydrates",
+      "sub_category": "Grains",
+      "preparation_state": "dry",
+      "energy_kcal": "368.00000",
+      "protein_g": "14.12000",
+      "carbohydrate_g": "64.16000",
+      "sugars_g": "6.10000",
+      "fat_g": "6.07000",
+      "saturates_g": "0.70600",
+      "fibre_g": "7.00000",
+      "salt_g": "0.01250"
+    },
+    "31": {
+      "id": 31,
+      "name": "Couscous, plain",
+      "category": "Carbohydrates",
+      "sub_category": "Grains",
+      "preparation_state": "dry",
+      "energy_kcal": "376.00000",
+      "protein_g": "12.76000",
+      "carbohydrate_g": "77.43000",
+      "sugars_g": "2.30000",
+      "fat_g": "0.64000",
+      "saturates_g": "0.11700",
+      "fibre_g": "5.00000",
+      "salt_g": "0.02500"
+    },
+    "35": {
+      "id": 35,
+      "name": "Sourdough bread, white (Tesco Finest)",
+      "category": "Carbohydrates",
+      "sub_category": "Bread and wraps",
+      "preparation_state": "ready_to_eat",
+      "energy_kcal": "229.00000",
+      "protein_g": "8.20000",
+      "carbohydrate_g": "48.80000",
+      "sugars_g": "2.70000",
+      "fat_g": "0.90000",
+      "saturates_g": "0.10000",
+      "fibre_g": "3.70000",
+      "salt_g": "0.84000"
+    },
+    "44": {
+      "id": 44,
+      "name": "Sweet potatoes, peeled",
+      "category": "Carbohydrates",
+      "sub_category": "Potatoes",
+      "preparation_state": "boiled_unsalted",
+      "energy_kcal": "76.00000",
+      "protein_g": "1.37000",
+      "carbohydrate_g": "17.72000",
+      "sugars_g": "5.74000",
+      "fat_g": "0.14000",
+      "saturates_g": "0.03100",
+      "fibre_g": "2.50000",
+      "salt_g": "0.06750"
+    },
+    "45": {
+      "id": 45,
+      "name": "Quinoa",
+      "category": "Carbohydrates",
+      "sub_category": "Grains",
+      "preparation_state": "cooked",
+      "energy_kcal": "120.00000",
+      "protein_g": "4.40000",
+      "carbohydrate_g": "21.30000",
+      "sugars_g": "0.87000",
+      "fat_g": "1.92000",
+      "saturates_g": "0.23100",
+      "fibre_g": "2.80000",
+      "salt_g": "0.01750"
+    },
+    "46": {
+      "id": 46,
+      "name": "Couscous, plain",
+      "category": "Carbohydrates",
+      "sub_category": "Grains",
+      "preparation_state": "cooked",
+      "energy_kcal": "112.00000",
+      "protein_g": "3.79000",
+      "carbohydrate_g": "23.22000",
+      "sugars_g": "0.10000",
+      "fat_g": "0.16000",
+      "saturates_g": "0.02900",
+      "fibre_g": "1.40000",
+      "salt_g": "0.01250"
+    },
+    "50": {
+      "id": 50,
+      "name": "Bananas",
+      "category": "Fruit",
+      "sub_category": "Tropical fruit",
+      "preparation_state": "raw",
+      "energy_kcal": "89.00000",
+      "protein_g": "1.09000",
+      "carbohydrate_g": "22.84000",
+      "sugars_g": "12.23000",
+      "fat_g": "0.33000",
+      "saturates_g": "0.11200",
+      "fibre_g": "2.60000",
+      "salt_g": "0.00250"
+    },
+    "53": {
+      "id": 53,
+      "name": "Strawberries",
+      "category": "Fruit",
+      "sub_category": "Berries",
+      "preparation_state": "raw",
+      "energy_kcal": "32.00000",
+      "protein_g": "0.67000",
+      "carbohydrate_g": "7.68000",
+      "sugars_g": "4.89000",
+      "fat_g": "0.30000",
+      "saturates_g": "0.01500",
+      "fibre_g": "2.00000",
+      "salt_g": "0.00250"
+    },
+    "54": {
+      "id": 54,
+      "name": "Blueberries",
+      "category": "Fruit",
+      "sub_category": "Berries",
+      "preparation_state": "raw",
+      "energy_kcal": "57.00000",
+      "protein_g": "0.74000",
+      "carbohydrate_g": "14.49000",
+      "sugars_g": "9.96000",
+      "fat_g": "0.33000",
+      "saturates_g": "0.02800",
+      "fibre_g": "2.40000",
+      "salt_g": "0.00250"
+    },
+    "55": {
+      "id": 55,
+      "name": "Raspberries",
+      "category": "Fruit",
+      "sub_category": "Berries",
+      "preparation_state": "raw",
+      "energy_kcal": "52.00000",
+      "protein_g": "1.20000",
+      "carbohydrate_g": "11.94000",
+      "sugars_g": "4.42000",
+      "fat_g": "0.65000",
+      "saturates_g": "0.01900",
+      "fibre_g": "6.50000",
+      "salt_g": "0.00250"
+    },
+    "75": {
+      "id": 75,
+      "name": "Blackcurrants",
+      "category": "Fruit",
+      "sub_category": "Berries",
+      "preparation_state": "raw",
+      "energy_kcal": "55.00000",
+      "protein_g": "1.30000",
+      "carbohydrate_g": "12.60000",
+      "sugars_g": "7.60000",
+      "fat_g": "1.00000",
+      "saturates_g": "0.10000",
+      "fibre_g": "5.00000",
+      "salt_g": "0.00000"
+    },
+    "76": {
+      "id": 76,
+      "name": "Avocado",
+      "category": "Fats",
+      "sub_category": "Fruit fats",
+      "preparation_state": "raw",
+      "energy_kcal": "160.00000",
+      "protein_g": "2.00000",
+      "carbohydrate_g": "8.53000",
+      "sugars_g": "0.66000",
+      "fat_g": "14.66000",
+      "saturates_g": "2.12600",
+      "fibre_g": "6.70000",
+      "salt_g": "0.01750"
+    },
+    "77": {
+      "id": 77,
+      "name": "Almonds",
+      "category": "Fats",
+      "sub_category": "Nuts",
+      "preparation_state": "raw",
+      "energy_kcal": "579.00000",
+      "protein_g": "21.15000",
+      "carbohydrate_g": "21.55000",
+      "sugars_g": "4.35000",
+      "fat_g": "49.93000",
+      "saturates_g": "3.80200",
+      "fibre_g": "12.50000",
+      "salt_g": "0.00250"
+    },
+    "82": {
+      "id": 82,
+      "name": "Peanuts",
+      "category": "Fats",
+      "sub_category": "Nuts",
+      "preparation_state": "raw",
+      "energy_kcal": "567.00000",
+      "protein_g": "25.80000",
+      "carbohydrate_g": "16.13000",
+      "sugars_g": "4.72000",
+      "fat_g": "49.24000",
+      "saturates_g": "6.27900",
+      "fibre_g": "8.50000",
+      "salt_g": "0.04500"
+    },
+    "87": {
+      "id": 87,
+      "name": "Olive oil",
+      "category": "Fats",
+      "sub_category": "Oils",
+      "preparation_state": "ready_to_eat",
+      "energy_kcal": "884.00000",
+      "protein_g": "0.00000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "100.00000",
+      "saturates_g": "13.80800",
+      "fibre_g": "0.00000",
+      "salt_g": "0.00500"
+    },
+    "95": {
+      "id": 95,
+      "name": "Olives, green",
+      "category": "Fats",
+      "sub_category": "Olives",
+      "preparation_state": "pickled_drained",
+      "energy_kcal": "145.00000",
+      "protein_g": "1.03000",
+      "carbohydrate_g": "3.84000",
+      "sugars_g": "0.54000",
+      "fat_g": "15.32000",
+      "saturates_g": "2.02900",
+      "fibre_g": "3.30000",
+      "salt_g": "3.89000"
+    },
+    "96": {
+      "id": 96,
+      "name": "Broccoli, raw",
+      "category": "Vegetables",
+      "sub_category": "Brassicas",
+      "preparation_state": "raw",
+      "energy_kcal": "34.00000",
+      "protein_g": "2.82000",
+      "carbohydrate_g": "6.64000",
+      "sugars_g": "1.70000",
+      "fat_g": "0.37000",
+      "saturates_g": "0.11400",
+      "fibre_g": "2.60000",
+      "salt_g": "0.08250"
+    },
+    "97": {
+      "id": 97,
+      "name": "Carrots, raw",
+      "category": "Vegetables",
+      "sub_category": "Root vegetables",
+      "preparation_state": "raw",
+      "energy_kcal": "41.00000",
+      "protein_g": "0.93000",
+      "carbohydrate_g": "9.58000",
+      "sugars_g": "4.74000",
+      "fat_g": "0.24000",
+      "saturates_g": "0.03200",
+      "fibre_g": "2.80000",
+      "salt_g": "0.17250"
+    },
+    "98": {
+      "id": 98,
+      "name": "Spinach, raw",
+      "category": "Vegetables",
+      "sub_category": "Leafy greens",
+      "preparation_state": "raw",
+      "energy_kcal": "23.00000",
+      "protein_g": "2.86000",
+      "carbohydrate_g": "3.63000",
+      "sugars_g": "0.42000",
+      "fat_g": "0.39000",
+      "saturates_g": "0.06300",
+      "fibre_g": "2.20000",
+      "salt_g": "0.19750"
+    },
+    "102": {
+      "id": 102,
+      "name": "Peppers, sweet red, raw",
+      "category": "Vegetables",
+      "sub_category": "Fruiting vegetables",
+      "preparation_state": "raw",
+      "energy_kcal": "26.00000",
+      "protein_g": "0.99000",
+      "carbohydrate_g": "6.03000",
+      "sugars_g": "4.20000",
+      "fat_g": "0.30000",
+      "saturates_g": "0.05900",
+      "fibre_g": "2.10000",
+      "salt_g": "0.01000"
+    },
+    "104": {
+      "id": 104,
+      "name": "Cucumber, with peel, raw",
+      "category": "Vegetables",
+      "sub_category": "Fruiting vegetables",
+      "preparation_state": "raw",
+      "energy_kcal": "15.00000",
+      "protein_g": "0.65000",
+      "carbohydrate_g": "3.63000",
+      "sugars_g": "1.67000",
+      "fat_g": "0.11000",
+      "saturates_g": "0.03700",
+      "fibre_g": "0.50000",
+      "salt_g": "0.00500"
+    },
+    "108": {
+      "id": 108,
+      "name": "Onions, raw",
+      "category": "Vegetables",
+      "sub_category": "Alliums",
+      "preparation_state": "raw",
+      "energy_kcal": "40.00000",
+      "protein_g": "1.10000",
+      "carbohydrate_g": "9.34000",
+      "sugars_g": "4.24000",
+      "fat_g": "0.10000",
+      "saturates_g": "0.04200",
+      "fibre_g": "1.70000",
+      "salt_g": "0.01000"
+    },
+    "123": {
+      "id": 123,
+      "name": "Spring onions, raw",
+      "category": "Vegetables",
+      "sub_category": "Alliums",
+      "preparation_state": "raw",
+      "energy_kcal": "32.00000",
+      "protein_g": "1.83000",
+      "carbohydrate_g": "7.34000",
+      "sugars_g": "2.33000",
+      "fat_g": "0.19000",
+      "saturates_g": "0.03200",
+      "fibre_g": "2.60000",
+      "salt_g": "0.04000"
+    },
+    "134": {
+      "id": 134,
+      "name": "Green peas, cooked, boiled, drained, unsalted",
+      "category": "Protein & dairy",
+      "sub_category": "Plant proteins",
+      "preparation_state": "cooked, boiled, drained, without salt",
+      "energy_kcal": "84.00000",
+      "protein_g": "5.36000",
+      "carbohydrate_g": "15.63000",
+      "sugars_g": "5.93000",
+      "fat_g": "0.22000",
+      "saturates_g": "0.03900",
+      "fibre_g": "5.50000",
+      "salt_g": "0.00750"
+    },
+    "136": {
+      "id": 136,
+      "name": "Greek yogurt, plain, nonfat (0% fat)",
+      "category": "Protein & dairy",
+      "sub_category": "Dairy",
+      "preparation_state": "plain, nonfat",
+      "energy_kcal": "59.00000",
+      "protein_g": "10.19000",
+      "carbohydrate_g": "3.60000",
+      "sugars_g": "3.24000",
+      "fat_g": "0.39000",
+      "saturates_g": "0.11700",
+      "fibre_g": "0.00000",
+      "salt_g": "0.09000"
+    },
+    "137": {
+      "id": 137,
+      "name": "Eggs, whole, raw",
+      "category": "Protein & dairy",
+      "sub_category": "Eggs",
+      "preparation_state": "raw, whole",
+      "energy_kcal": "143.00000",
+      "protein_g": "12.56000",
+      "carbohydrate_g": "0.72000",
+      "sugars_g": "0.38000",
+      "fat_g": "9.52000",
+      "saturates_g": "3.12000",
+      "fibre_g": "0.00000",
+      "salt_g": "0.35500"
+    }
+  },
+  "drafts": [
+    {
+      "draft_id": 11,
+      "start_date": "2026-10-26",
+      "slots": {
+        "lunch": "Lunch",
+        "dinner": "Dinner",
+        "meal_2": "Meal 2",
+        "meal_4": "Meal 4",
+        "snack_1": "Snack 1",
+        "breakfast": "Breakfast"
+      },
+      "generated": {
+        "lunch": [
+          {
+            "name": "Grilled Turkey Breast with Couscous and Roasted Vegetables",
+            "totals": {
+              "fat_g": 13.14,
+              "salt_g": 0.37175,
+              "fibre_g": 5.05,
+              "sugars_g": 6.470000000000001,
+              "protein_g": 59.725,
+              "energy_kcal": 534.9,
+              "saturates_g": 2.4042999999999997,
+              "carbohydrate_g": 45.53
+            },
+            "description": "A balanced lunch featuring lean grilled turkey breast paired with fluffy couscous and a colorful mix of roasted vegetables.",
+            "ingredients": [
+              {
+                "name": "Turkey breast fillet, grilled",
+                "food_key": "fc7209d1a242b8120bbb4466334d6bc8301faaaca68193ba45ec9a3288f71969",
+                "quantity_g": 150,
+                "ingredient_id": 15,
+                "preparation_state": "grilled"
+              },
+              {
+                "name": "Couscous, plain",
+                "food_key": "aba4479c132a76f9385afd95a4f3d08f0d79313666d4df918f91581db6958487",
+                "quantity_g": 150,
+                "ingredient_id": 46,
+                "preparation_state": "cooked"
+              },
+              {
+                "name": "Peppers, sweet red, raw",
+                "food_key": "587cc98147a50da49dca3bef74b63227cb26f9919761d6a5f74f7ca15b5db18f",
+                "quantity_g": 100,
+                "ingredient_id": 102,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Onions, raw",
+                "food_key": "271a9a5406e09862b98e0e1f0ebc87d28aec1a7f6eb013bb48707f66082c4c84",
+                "quantity_g": 50,
+                "ingredient_id": 108,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Olive oil",
+                "food_key": "675d2cd97e8f83b20468c2a13122ac320c62891e8912594606af662e875a6bd4",
+                "quantity_g": 10,
+                "ingredient_id": 87,
+                "preparation_state": "ready_to_eat"
+              }
+            ],
+            "instructions": "1. Preheat your oven to 200\u00b0C (400\u00b0F).  \n2. Slice red peppers and onions. Toss them with a small amount of olive oil.  \n3. Roast the vegetables in the oven for about 15 minutes until tender.  \n4. Meanwhile, cook the couscous by pouring boiling water over it, cover, and let it absorb for 5 minutes.  \n5. Grill the turkey breast fillet until fully cooked (about 10-12 minutes), turning occasionally.  \n6. Serve the grilled turkey breast alongside the cooked couscous and roasted vegetables."
+          },
+          {
+            "name": "Lean Beef Mince and Quinoa Bowl with Fresh Greens",
+            "totals": {
+              "fat_g": 23.836,
+              "salt_g": 0.4637500000000001,
+              "fibre_g": 10.28,
+              "sugars_g": 8.229000000000001,
+              "protein_g": 51.773,
+              "energy_kcal": 746.1,
+              "saturates_g": 5.3891,
+              "carbohydrate_g": 81.009
+            },
+            "description": "Hearty extra lean beef mince cooked and served over protein-rich quinoa, complemented by fresh spinach and spring onions.",
+            "ingredients": [
+              {
+                "name": "Beef mince, extra lean, raw",
+                "food_key": "8f1d03be2c1f059641534ea12955d67cf0def4050536c2721c0c4864c4d6d67e",
+                "quantity_g": 150,
+                "ingredient_id": 8,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Quinoa",
+                "food_key": "847be6c5d1c45123df8621751173e69ff9f5086d67084fe041712674b5f1b9c0",
+                "quantity_g": 120,
+                "ingredient_id": 30,
+                "preparation_state": "dry"
+              },
+              {
+                "name": "Spinach, raw",
+                "food_key": "cf818244fa05c9495fbe0abfa4c28d5ace15d94334678873596fab68a77d7f71",
+                "quantity_g": 50,
+                "ingredient_id": 98,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Spring onions, raw",
+                "food_key": "33ed517a55000b352da6065396075beed8761236c56a3ef0410be40cb7376aed",
+                "quantity_g": 30,
+                "ingredient_id": 123,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Olive oil",
+                "food_key": "675d2cd97e8f83b20468c2a13122ac320c62891e8912594606af662e875a6bd4",
+                "quantity_g": 10,
+                "ingredient_id": 87,
+                "preparation_state": "ready_to_eat"
+              }
+            ],
+            "instructions": "1. Cook the quinoa in boiling water according to package instructions until tender, then drain.  \n2. Saut\u00e9 the extra lean beef mince in a pan until browned and fully cooked.  \n3. Chop fresh spinach and spring onions.  \n4. Combine cooked quinoa, cooked beef mince, spinach, and spring onions in a bowl.  \n5. Drizzle with olive oil and mix well before serving."
+          },
+          {
+            "name": "Chicken Thigh Cassoulet with Boiled Sweet Potatoes and Broccoli",
+            "totals": {
+              "fat_g": 20.986,
+              "salt_g": 0.3475,
+              "fibre_g": 5.83,
+              "sugars_g": 9.97,
+              "protein_g": 50.391,
+              "energy_kcal": 509.4,
+              "saturates_g": 5.1480999999999995,
+              "carbohydrate_g": 31.891999999999996
+            },
+            "description": "Tender casseroled chicken thigh served with gently boiled sweet potatoes and fresh raw broccoli for a nutritious meal.",
+            "ingredients": [
+              {
+                "name": "Chicken thigh, casseroled",
+                "food_key": "96053e55c22e5f8328cd0e4c24a4237f028eec88f29fc6444d118e34d36af167",
+                "quantity_g": 180,
+                "ingredient_id": 23,
+                "preparation_state": "casseroled"
+              },
+              {
+                "name": "Sweet potatoes, peeled",
+                "food_key": "88f705ba9f4db3e8e8dd85ce58328d1f24e6965600e76028ada66da62619b4c8",
+                "quantity_g": 150,
+                "ingredient_id": 44,
+                "preparation_state": "boiled_unsalted"
+              },
+              {
+                "name": "Broccoli, raw",
+                "food_key": "a858e45df7f432a19e90009a59c89426dc29f0d47af58f6f1c3156ff5e531b4d",
+                "quantity_g": 80,
+                "ingredient_id": 96,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Olive oil",
+                "food_key": "675d2cd97e8f83b20468c2a13122ac320c62891e8912594606af662e875a6bd4",
+                "quantity_g": 5,
+                "ingredient_id": 87,
+                "preparation_state": "ready_to_eat"
+              }
+            ],
+            "instructions": "1. Simmer the casseroled chicken thigh to warm through.  \n2. Peel and boil the sweet potatoes until soft, then drain.  \n3. Rinse and chop the raw broccoli into bite-sized florets.  \n4. Plate the warm chicken thigh alongside the boiled sweet potatoes and raw broccoli.  \n5. Optionally drizzle olive oil over broccoli and sweet potatoes for added flavor."
+          }
+        ],
+        "snack": [
+          {
+            "name": "Greek Yogurt with Mixed Berries and Almonds",
+            "totals": {
+              "fat_g": 8.5835,
+              "salt_g": 0.138375,
+              "fibre_g": 6.195,
+              "sugars_g": 12.7135,
+              "protein_g": 19.4945,
+              "energy_kcal": 229.25,
+              "saturates_g": 0.7693000000000001,
+              "carbohydrate_g": 21.5955
+            },
+            "description": "A simple, fresh snack of creamy Greek yogurt topped with a variety of berries and crunchy almonds.",
+            "ingredients": [
+              {
+                "name": "Greek yogurt, plain, nonfat (0% fat)",
+                "food_key": "1234db6a0b53fb593b0aa15d599feded3097788e43d2791fa785ce85585e7fbd",
+                "quantity_g": 150,
+                "ingredient_id": 136,
+                "preparation_state": "plain, nonfat"
+              },
+              {
+                "name": "Strawberries",
+                "food_key": "3ed56e76199ec9d2b1b1bd6f14466c6bdceb87aafbcfe69931f42b9f2c835eac",
+                "quantity_g": 50,
+                "ingredient_id": 53,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Blueberries",
+                "food_key": "74688c90a17a02c649d28b3dad98eb8ddd2e0fad1271ee685bbd0e24798078d9",
+                "quantity_g": 30,
+                "ingredient_id": 54,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Raspberries",
+                "food_key": "3c0ae985710c91369b609b721a2fc1ae9652b5c356971ecdb56a1b9b27fe9f41",
+                "quantity_g": 40,
+                "ingredient_id": 55,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Almonds",
+                "food_key": "a0f216df307bf563f7028cd35f9a49a5382fd87d74262312842979be0fba84e1",
+                "quantity_g": 15,
+                "ingredient_id": 77,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Place the Greek yogurt in a serving bowl.\n2. Wash and dry the strawberries, blueberries, and raspberries.\n3. Slice the strawberries into halves.\n4. Add the strawberries, blueberries, and raspberries on top of the yogurt.\n5. Sprinkle the almonds on top.\n6. Serve immediately."
+          },
+          {
+            "name": "Turkey Breast Salad with Avocado and Olives",
+            "totals": {
+              "fat_g": 13.966,
+              "salt_g": 1.44575,
+              "fibre_g": 4.34,
+              "sugars_g": 0.4920000000000001,
+              "protein_g": 43.309,
+              "energy_kcal": 309.5,
+              "saturates_g": 2.3917,
+              "carbohydrate_g": 5.417
+            },
+            "description": "A light, protein-packed snack featuring sliced turkey breast with creamy avocado and tangy green olives.",
+            "ingredients": [
+              {
+                "name": "Turkey breast fillet, grilled",
+                "food_key": "fc7209d1a242b8120bbb4466334d6bc8301faaaca68193ba45ec9a3288f71969",
+                "quantity_g": 120,
+                "ingredient_id": 15,
+                "preparation_state": "grilled"
+              },
+              {
+                "name": "Avocado",
+                "food_key": "bef64547da09bbf376431788a7ad4047fe02a86b4780f7b8d9a462023704313d",
+                "quantity_g": 50,
+                "ingredient_id": 76,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Olives, green",
+                "food_key": "439cb91c953c464eebca64ca0718cdef8a3b42e102f7a13a1a619769a9a9f90f",
+                "quantity_g": 30,
+                "ingredient_id": 95,
+                "preparation_state": "pickled_drained"
+              }
+            ],
+            "instructions": "1. Slice the grilled turkey breast into strips.\n2. Peel and dice the avocado.\n3. Drain the green olives.\n4. Arrange the turkey slices on a plate.\n5. Add avocado cubes and olives around the turkey.\n6. Serve immediately as a quick snack."
+          },
+          {
+            "name": "Boiled Sweet Potato and Stewed Turkey Mince Snack",
+            "totals": {
+              "fat_g": 7.01,
+              "salt_g": 0.21375,
+              "fibre_g": 3.75,
+              "sugars_g": 8.61,
+              "protein_g": 30.655,
+              "energy_kcal": 290,
+              "saturates_g": 2.0465,
+              "carbohydrate_g": 26.58
+            },
+            "description": "A warm, satisfying snack with tender sweet potato and flavorful stewed turkey mince.",
+            "ingredients": [
+              {
+                "name": "Sweet potatoes, peeled",
+                "food_key": "88f705ba9f4db3e8e8dd85ce58328d1f24e6965600e76028ada66da62619b4c8",
+                "quantity_g": 150,
+                "ingredient_id": 44,
+                "preparation_state": "boiled_unsalted"
+              },
+              {
+                "name": "Turkey mince, stewed",
+                "food_key": "ad5594b08629ad6f2e2fa1c2699501638774e0d824c3ec1d9a4ff1314da5d5d6",
+                "quantity_g": 100,
+                "ingredient_id": 22,
+                "preparation_state": "stewed"
+              }
+            ],
+            "instructions": "1. Peel and cube the sweet potato.\n2. Boil the sweet potato cubes until tender, then drain.\n3. Heat the stewed turkey mince until warmed through.\n4. Arrange the sweet potato and turkey mince on a plate.\n5. Serve warm."
+          }
+        ],
+        "dinner": [
+          {
+            "name": "Grilled Turkey Breast with Quinoa and Steamed Broccoli",
+            "totals": {
+              "fat_g": 5.8,
+              "salt_g": 0.44625,
+              "fibre_g": 6.800000000000001,
+              "sugars_g": 3.005,
+              "protein_g": 61.92,
+              "energy_kcal": 446.5,
+              "saturates_g": 1.3605,
+              "carbohydrate_g": 38.59
+            },
+            "description": "A simple, nutritious dinner featuring grilled turkey breast served with cooked quinoa and fresh steamed broccoli.",
+            "ingredients": [
+              {
+                "name": "Turkey breast fillet, grilled",
+                "food_key": "fc7209d1a242b8120bbb4466334d6bc8301faaaca68193ba45ec9a3288f71969",
+                "quantity_g": 150,
+                "ingredient_id": 15,
+                "preparation_state": "grilled"
+              },
+              {
+                "name": "Quinoa",
+                "food_key": "847be6c5d1c45123df8621751173e69ff9f5086d67084fe041712674b5f1b9c0",
+                "quantity_g": 150,
+                "ingredient_id": 45,
+                "preparation_state": "cooked"
+              },
+              {
+                "name": "Broccoli, raw",
+                "food_key": "a858e45df7f432a19e90009a59c89426dc29f0d47af58f6f1c3156ff5e531b4d",
+                "quantity_g": 100,
+                "ingredient_id": 96,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Rinse and cook quinoa in boiling water until tender, then drain.\n2. Grill turkey breast fillet until fully cooked and juices run clear.\n3. Steam broccoli until tender but still vibrant green.\n4. Plate turkey breast alongside quinoa and broccoli.\n5. Serve warm and enjoy."
+          },
+          {
+            "name": "Lean Beef Mince and Sweet Potato Mash with Green Peas",
+            "totals": {
+              "fat_g": 6.8,
+              "salt_g": 0.48,
+              "fibre_g": 10.5,
+              "sugars_g": 17.41,
+              "protein_g": 40.95,
+              "energy_kcal": 431,
+              "saturates_g": 3.221,
+              "carbohydrate_g": 51.07
+            },
+            "description": "Extra lean beef mince saut\u00e9ed and served with creamy mashed boiled sweet potatoes and cooked green peas.",
+            "ingredients": [
+              {
+                "name": "Beef mince, extra lean, raw",
+                "food_key": "8f1d03be2c1f059641534ea12955d67cf0def4050536c2721c0c4864c4d6d67e",
+                "quantity_g": 150,
+                "ingredient_id": 8,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Sweet potatoes, peeled",
+                "food_key": "88f705ba9f4db3e8e8dd85ce58328d1f24e6965600e76028ada66da62619b4c8",
+                "quantity_g": 200,
+                "ingredient_id": 44,
+                "preparation_state": "boiled_unsalted"
+              },
+              {
+                "name": "Green peas, cooked, boiled, drained, unsalted",
+                "food_key": "7b7957df85a90c07f4b8f577e20567139d943db20d5934fcc5bf2e2755fcfeb3",
+                "quantity_g": 100,
+                "ingredient_id": 134,
+                "preparation_state": "cooked, boiled, drained, without salt"
+              }
+            ],
+            "instructions": "1. Boil peeled sweet potatoes until soft, then mash.\n2. Cook green peas by boiling until tender.\n3. Brown beef mince in a pan until fully cooked.\n4. Plate the beef mince with sweet potato mash and green peas.\n5. Serve hot for a hearty meal."
+          },
+          {
+            "name": "Roasted Lamb Leg with Couscous and Carrot Salad",
+            "totals": {
+              "fat_g": 15.252,
+              "salt_g": 0.4117499999999999,
+              "fibre_g": 9.74,
+              "sugars_g": 7.242000000000001,
+              "protein_g": 64.434,
+              "energy_kcal": 901.3,
+              "saturates_g": 5.9011000000000005,
+              "carbohydrate_g": 123.80900000000004
+            },
+            "description": "Tender roasted lamb leg served with cooked couscous and a fresh raw carrot salad for a flavorful dinner.",
+            "ingredients": [
+              {
+                "name": "Lamb leg, roasted, lean",
+                "food_key": "7b42aee7ffd03063e996011d42a9e02880260d6e63b2bb7e5aa616ad004c1c3d",
+                "quantity_g": 150,
+                "ingredient_id": 16,
+                "preparation_state": "roasted"
+              },
+              {
+                "name": "Couscous, plain",
+                "food_key": "aba4479c132a76f9385afd95a4f3d08f0d79313666d4df918f91581db6958487",
+                "quantity_g": 150,
+                "ingredient_id": 31,
+                "preparation_state": "dry"
+              },
+              {
+                "name": "Carrots, raw",
+                "food_key": "a4ba3e0e2c73fc14d0e42c6d19c78127c2cafdd8c31cfa0710ce3149c271a050",
+                "quantity_g": 80,
+                "ingredient_id": 97,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Roast lamb leg until cooked to preferred doneness.\n2. Cook couscous by soaking in boiling water until fluffy.\n3. Peel and grate raw carrots for a fresh salad.\n4. Arrange sliced lamb on plate with couscous and carrot salad on the side.\n5. Serve immediately while warm."
+          }
+        ],
+        "breakfast": [
+          {
+            "name": "Savory Oatmeal with Turkey and Spinach",
+            "totals": {
+              "fat_g": 14.748,
+              "salt_g": 0.34125,
+              "fibre_g": 5.93,
+              "sugars_g": 0.7080000000000001,
+              "protein_g": 29.013,
+              "energy_kcal": 389.7000000000001,
+              "saturates_g": 2.2211,
+              "carbohydrate_g": 35.428
+            },
+            "description": "A hearty and nutritious savory oatmeal breakfast combining lean turkey breast, cooked oats, fresh spinach, and a touch of olive oil for a balanced meal.",
+            "ingredients": [
+              {
+                "name": "Turkey breast, raw",
+                "food_key": "fc7209d1a242b8120bbb4466334d6bc8301faaaca68193ba45ec9a3288f71969",
+                "quantity_g": 90,
+                "ingredient_id": 3,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Rolled oats (porridge oats)",
+                "food_key": "1ee58b9c31914b02a29859c63741e16a0b059335a1406d759d9712d29a8537dc",
+                "quantity_g": 50,
+                "ingredient_id": 27,
+                "preparation_state": "dry"
+              },
+              {
+                "name": "Spinach, raw",
+                "food_key": "cf818244fa05c9495fbe0abfa4c28d5ace15d94334678873596fab68a77d7f71",
+                "quantity_g": 40,
+                "ingredient_id": 98,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Olive oil",
+                "food_key": "675d2cd97e8f83b20468c2a13122ac320c62891e8912594606af662e875a6bd4",
+                "quantity_g": 10,
+                "ingredient_id": 87,
+                "preparation_state": "ready_to_eat"
+              }
+            ],
+            "instructions": "1. Cook rolled oats with water until soft and creamy.\n2. Dice raw turkey breast and saut\u00e9 in a pan with olive oil until fully cooked.\n3. Stir in fresh raw spinach into the turkey and cook until wilted.\n4. Combine cooked oats with the turkey and spinach mixture.\n5. Serve warm."
+          },
+          {
+            "name": "Greek Yogurt and Mixed Berry Bowl with Almonds",
+            "totals": {
+              "fat_g": 11.113,
+              "salt_g": 0.13875,
+              "fibre_g": 7.0600000000000005,
+              "sugars_g": 13.927,
+              "protein_g": 20.626,
+              "energy_kcal": 263.9,
+              "saturates_g": 0.9622000000000002,
+              "carbohydrate_g": 24.122
+            },
+            "description": "A fresh and tasty breakfast bowl featuring creamy nonfat Greek yogurt topped with a colorful mix of berries and crunchy almonds for texture and flavor.",
+            "ingredients": [
+              {
+                "name": "Greek yogurt, plain, nonfat (0% fat)",
+                "food_key": "1234db6a0b53fb593b0aa15d599feded3097788e43d2791fa785ce85585e7fbd",
+                "quantity_g": 150,
+                "ingredient_id": 136,
+                "preparation_state": "plain, nonfat"
+              },
+              {
+                "name": "Strawberries",
+                "food_key": "3ed56e76199ec9d2b1b1bd6f14466c6bdceb87aafbcfe69931f42b9f2c835eac",
+                "quantity_g": 50,
+                "ingredient_id": 53,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Blueberries",
+                "food_key": "74688c90a17a02c649d28b3dad98eb8ddd2e0fad1271ee685bbd0e24798078d9",
+                "quantity_g": 40,
+                "ingredient_id": 54,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Raspberries",
+                "food_key": "3c0ae985710c91369b609b721a2fc1ae9652b5c356971ecdb56a1b9b27fe9f41",
+                "quantity_g": 40,
+                "ingredient_id": 55,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Almonds",
+                "food_key": "a0f216df307bf563f7028cd35f9a49a5382fd87d74262312842979be0fba84e1",
+                "quantity_g": 20,
+                "ingredient_id": 77,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Place Greek yogurt in a bowl.\n2. Rinse and add a mix of raw strawberries, blueberries, and raspberries on top of the yogurt.\n3. Sprinkle raw almonds over the berries.\n4. Serve immediately without further preparation."
+          },
+          {
+            "name": "Sourdough Toast with Avocado and Poached Eggs",
+            "totals": {
+              "fat_g": 21.274,
+              "salt_g": 0.90675,
+              "fibre_g": 6.91,
+              "sugars_g": 2.5000000000000004,
+              "protein_g": 20.136,
+              "energy_kcal": 406.7000000000001,
+              "saturates_g": 4.9802,
+              "carbohydrate_g": 36.043
+            },
+            "description": "A classic breakfast of toasted sourdough bread topped with fresh avocado and perfectly poached eggs providing a creamy, protein-rich start to your day.",
+            "ingredients": [
+              {
+                "name": "Sourdough bread, white (Tesco Finest)",
+                "food_key": "8991535378fe86494368a4029fa2d8a982a2bc7a2e4083e02a016c81974b1d11",
+                "quantity_g": 60,
+                "ingredient_id": 35,
+                "preparation_state": "ready_to_eat"
+              },
+              {
+                "name": "Avocado",
+                "food_key": "bef64547da09bbf376431788a7ad4047fe02a86b4780f7b8d9a462023704313d",
+                "quantity_g": 70,
+                "ingredient_id": 76,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Eggs, whole, raw",
+                "food_key": "d8b257afd644fdcacec69276c7ecde5f96882d679c57f524c7e27aac1701a1e6",
+                "quantity_g": 110,
+                "ingredient_id": 137,
+                "preparation_state": "raw, whole"
+              }
+            ],
+            "instructions": "1. Toast the sourdough bread slice until golden.\n2. Peel and mash raw avocado.\n3. Spread the mashed avocado evenly over the toasted bread.\n4. Poach eggs in simmering water until the whites are set but yolks remain runny.\n5. Place the poached eggs on top of the avocado toast.\n6. Serve immediately."
+          }
+        ]
+      },
+      "targets": {
+        "status": "ready",
+        "calories_kcal": 3210,
+        "protein_g": 240.75,
+        "carbohydrate_g": 361.125,
+        "fat_g": 89.16666666666667
+      }
+    },
+    {
+      "draft_id": 12,
+      "start_date": "2026-11-09",
+      "slots": {
+        "lunch": "Lunch",
+        "dinner": "Dinner",
+        "meal_2": "Meal 2",
+        "meal_4": "Meal 4",
+        "snack_1": "Snack 1",
+        "breakfast": "Breakfast"
+      },
+      "generated": {
+        "lunch": [
+          {
+            "name": "Grilled Turkey Breast with Quinoa and Steamed Broccoli",
+            "totals": {
+              "fat_g": 5.8,
+              "salt_g": 0.44625,
+              "fibre_g": 6.800000000000001,
+              "sugars_g": 3.005,
+              "protein_g": 61.92,
+              "energy_kcal": 446.5,
+              "saturates_g": 1.3605,
+              "carbohydrate_g": 38.59
+            },
+            "description": "A balanced lunch featuring lean grilled turkey breast paired with fluffy cooked quinoa and fresh steamed broccoli for a nutritious, flavorful meal.",
+            "ingredients": [
+              {
+                "name": "Turkey breast fillet, grilled",
+                "food_key": "fc7209d1a242b8120bbb4466334d6bc8301faaaca68193ba45ec9a3288f71969",
+                "quantity_g": 150,
+                "ingredient_id": 15,
+                "preparation_state": "grilled"
+              },
+              {
+                "name": "Quinoa",
+                "food_key": "847be6c5d1c45123df8621751173e69ff9f5086d67084fe041712674b5f1b9c0",
+                "quantity_g": 150,
+                "ingredient_id": 45,
+                "preparation_state": "cooked"
+              },
+              {
+                "name": "Broccoli, raw",
+                "food_key": "a858e45df7f432a19e90009a59c89426dc29f0d47af58f6f1c3156ff5e531b4d",
+                "quantity_g": 100,
+                "ingredient_id": 96,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Preheat the grill and cook the turkey breast fillet until thoroughly grilled.\n2. Rinse the dry quinoa and cook it in boiling water until fluffy.\n3. Steam the raw broccoli until tender.\n4. Plate the turkey breast alongside the cooked quinoa and steamed broccoli.\n5. Serve warm and enjoy your healthy lunch."
+          },
+          {
+            "name": "Lean Beef Mince and Couscous Salad with Red Peppers and Onions",
+            "totals": {
+              "fat_g": 7.55,
+              "salt_g": 0.33175,
+              "fibre_g": 10.03,
+              "sugars_g": 8.93,
+              "protein_g": 57.532,
+              "energy_kcal": 810.3,
+              "saturates_g": 2.9887,
+              "carbohydrate_g": 125.63900000000002
+            },
+            "description": "A quick cooked beef mince and couscous salad with crunchy raw red peppers and onions, combining protein and carbs with fresh vegetables for a satisfying lunch.",
+            "ingredients": [
+              {
+                "name": "Beef mince, extra lean, stewed",
+                "food_key": "8f1d03be2c1f059641534ea12955d67cf0def4050536c2721c0c4864c4d6d67e",
+                "quantity_g": 150,
+                "ingredient_id": 19,
+                "preparation_state": "stewed"
+              },
+              {
+                "name": "Couscous, plain",
+                "food_key": "aba4479c132a76f9385afd95a4f3d08f0d79313666d4df918f91581db6958487",
+                "quantity_g": 150,
+                "ingredient_id": 31,
+                "preparation_state": "dry"
+              },
+              {
+                "name": "Peppers, sweet red, raw",
+                "food_key": "587cc98147a50da49dca3bef74b63227cb26f9919761d6a5f74f7ca15b5db18f",
+                "quantity_g": 80,
+                "ingredient_id": 102,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Onions, raw",
+                "food_key": "271a9a5406e09862b98e0e1f0ebc87d28aec1a7f6eb013bb48707f66082c4c84",
+                "quantity_g": 50,
+                "ingredient_id": 108,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Stew the extra lean raw beef mince until cooked through.\n2. Cook the dry couscous by soaking it in hot water until tender.\n3. Slice the raw red peppers and onions.\n4. Mix the cooked beef mince and couscous with the raw sliced peppers and onions.\n5. Serve immediately or chill for a refreshing salad."
+          },
+          {
+            "name": "Chicken Thigh Casseroled with Boiled Sweet Potatoes and Raw Spinach",
+            "totals": {
+              "fat_g": 13.375,
+              "salt_g": 0.38375,
+              "fibre_g": 6.1,
+              "sugars_g": 11.69,
+              "protein_g": 42.57,
+              "energy_kcal": 433.5,
+              "saturates_g": 3.6935,
+              "carbohydrate_g": 37.254999999999995
+            },
+            "description": "Comforting casseroled chicken thighs served with tender boiled sweet potatoes and fresh raw spinach leaves for a tasty and nutritious meal.",
+            "ingredients": [
+              {
+                "name": "Chicken thigh, casseroled",
+                "food_key": "96053e55c22e5f8328cd0e4c24a4237f028eec88f29fc6444d118e34d36af167",
+                "quantity_g": 150,
+                "ingredient_id": 23,
+                "preparation_state": "casseroled"
+              },
+              {
+                "name": "Sweet potatoes, peeled",
+                "food_key": "88f705ba9f4db3e8e8dd85ce58328d1f24e6965600e76028ada66da62619b4c8",
+                "quantity_g": 200,
+                "ingredient_id": 44,
+                "preparation_state": "boiled_unsalted"
+              },
+              {
+                "name": "Spinach, raw",
+                "food_key": "cf818244fa05c9495fbe0abfa4c28d5ace15d94334678873596fab68a77d7f71",
+                "quantity_g": 50,
+                "ingredient_id": 98,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Casseroled the raw chicken thighs slowly until fully cooked.\n2. Peel and boil the sweet potatoes until soft.\n3. Rinse the raw spinach leaves.\n4. Arrange the cooked chicken thighs with boiled sweet potatoes and raw spinach on a plate.\n5. Serve warm and enjoy your hearty lunch."
+          }
+        ],
+        "snack": [
+          {
+            "name": "Greek Yogurt and Mixed Berries Snack",
+            "totals": {
+              "fat_g": 1.1989999999999998,
+              "salt_g": 0.1375,
+              "fibre_g": 4.47,
+              "sugars_g": 12.65,
+              "protein_g": 16.395000000000003,
+              "energy_kcal": 145,
+              "saturates_g": 0.2156,
+              "carbohydrate_g": 18.921
+            },
+            "description": "A simple, refreshing snack with protein-rich Greek yogurt and a medley of fresh berries.",
+            "ingredients": [
+              {
+                "name": "Greek yogurt, plain, nonfat (0% fat)",
+                "food_key": "1234db6a0b53fb593b0aa15d599feded3097788e43d2791fa785ce85585e7fbd",
+                "quantity_g": 150,
+                "ingredient_id": 136,
+                "preparation_state": "plain, nonfat"
+              },
+              {
+                "name": "Strawberries",
+                "food_key": "3ed56e76199ec9d2b1b1bd6f14466c6bdceb87aafbcfe69931f42b9f2c835eac",
+                "quantity_g": 40,
+                "ingredient_id": 53,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Blueberries",
+                "food_key": "74688c90a17a02c649d28b3dad98eb8ddd2e0fad1271ee685bbd0e24798078d9",
+                "quantity_g": 30,
+                "ingredient_id": 54,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Raspberries",
+                "food_key": "3c0ae985710c91369b609b721a2fc1ae9652b5c356971ecdb56a1b9b27fe9f41",
+                "quantity_g": 30,
+                "ingredient_id": 55,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Blackcurrants",
+                "food_key": "6a2dc2f46308298c2392e2a320e67a465708bce3ef84433a648756f9f170d162",
+                "quantity_g": 20,
+                "ingredient_id": 75,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Wash and pat dry the strawberries, blueberries, raspberries, and blackcurrants.\n2. Slice the strawberries if large.\n3. Gently mix all the berries together.\n4. Spoon Greek yogurt into a small bowl.\n5. Top the yogurt with the mixed berries.\n6. Serve immediately for a fresh snack."
+          },
+          {
+            "name": "Chicken Breast with Cucumber and Olives Snack",
+            "totals": {
+              "fat_g": 10.5,
+              "salt_g": 1.782,
+              "fibre_g": 1.7200000000000002,
+              "sugars_g": 1.5519999999999998,
+              "protein_g": 38.156000000000006,
+              "energy_kcal": 268,
+              "saturates_g": 2.0532,
+              "carbohydrate_g": 4.4399999999999995
+            },
+            "description": "A protein-packed snack featuring cooked chicken breast paired with fresh cucumber slices and green olives.",
+            "ingredients": [
+              {
+                "name": "Chicken breast, cooked",
+                "food_key": "92e84b6e6fd5f0b39bb5489e4f03191b59faf20dd3af68fadfabf67f1a4415a0",
+                "quantity_g": 120,
+                "ingredient_id": 14,
+                "preparation_state": "roasted"
+              },
+              {
+                "name": "Cucumber, with peel, raw",
+                "food_key": "fc5aa6fc99e255a619490900ea1b1a461d540d4471a9b756cbd862292681657f",
+                "quantity_g": 80,
+                "ingredient_id": 104,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Olives, green",
+                "food_key": "439cb91c953c464eebca64ca0718cdef8a3b42e102f7a13a1a619769a9a9f90f",
+                "quantity_g": 40,
+                "ingredient_id": 95,
+                "preparation_state": "pickled_drained"
+              }
+            ],
+            "instructions": "1. Slice cooked chicken breast into bite-sized pieces.\n2. Wash and slice cucumber into thin rounds.\n3. Drain the green olives.\n4. Arrange chicken, cucumber slices, and olives on a plate.\n5. Enjoy immediately as a savory snack."
+          },
+          {
+            "name": "Peanut Butter and Banana Snack",
+            "totals": {
+              "fat_g": 15.102,
+              "salt_g": 0.015999999999999997,
+              "fibre_g": 5.15,
+              "sugars_g": 13.646,
+              "protein_g": 8.83,
+              "energy_kcal": 259.1,
+              "saturates_g": 1.9957000000000005,
+              "carbohydrate_g": 27.679
+            },
+            "description": "A quick and easy snack combining creamy peanut butter with fresh banana slices.",
+            "ingredients": [
+              {
+                "name": "Peanuts",
+                "food_key": "04ce2703bd41ebd5e4a4a2adbb635aaffd83b62613b71ecbecafb1bab94368df",
+                "quantity_g": 30,
+                "ingredient_id": 82,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Bananas",
+                "food_key": "af39052ac40b1bef9d2bf29ae31cfd1642e01ffb6b633a1b43686a7b7d273eda",
+                "quantity_g": 100,
+                "ingredient_id": 50,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Peel the banana and slice it into rounds.\n2. Spread peanut butter evenly over banana slices or enjoy them side by side.\n3. Serve immediately for a filling snack."
+          }
+        ],
+        "dinner": [
+          {
+            "name": "Grilled Turkey Breast with Quinoa and Roasted Vegetables",
+            "totals": {
+              "fat_g": 18.872,
+              "salt_g": 0.6535,
+              "fibre_g": 12.84,
+              "sugars_g": 14.908,
+              "protein_g": 69.248,
+              "energy_kcal": 824.9,
+              "saturates_g": 3.034,
+              "carbohydrate_g": 95.968
+            },
+            "description": "A balanced dinner featuring lean grilled turkey breast served with fluffy quinoa and a medley of roasted vegetables for a nutritious meal.",
+            "ingredients": [
+              {
+                "name": "Turkey breast fillet, grilled",
+                "food_key": "fc7209d1a242b8120bbb4466334d6bc8301faaaca68193ba45ec9a3288f71969",
+                "quantity_g": 150,
+                "ingredient_id": 15,
+                "preparation_state": "grilled"
+              },
+              {
+                "name": "Quinoa",
+                "food_key": "847be6c5d1c45123df8621751173e69ff9f5086d67084fe041712674b5f1b9c0",
+                "quantity_g": 100,
+                "ingredient_id": 30,
+                "preparation_state": "dry"
+              },
+              {
+                "name": "Sweet potatoes",
+                "food_key": "88f705ba9f4db3e8e8dd85ce58328d1f24e6965600e76028ada66da62619b4c8",
+                "quantity_g": 120,
+                "ingredient_id": 29,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Carrots, raw",
+                "food_key": "a4ba3e0e2c73fc14d0e42c6d19c78127c2cafdd8c31cfa0710ce3149c271a050",
+                "quantity_g": 80,
+                "ingredient_id": 97,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Olive oil",
+                "food_key": "675d2cd97e8f83b20468c2a13122ac320c62891e8912594606af662e875a6bd4",
+                "quantity_g": 10,
+                "ingredient_id": 87,
+                "preparation_state": "ready_to_eat"
+              }
+            ],
+            "instructions": "1. Preheat the oven to 200\u00b0C (400\u00b0F). 2. Rinse and drain the quinoa, then cook it in boiling water until fluffy. 3. Peel and chop sweet potatoes and carrots into bite-sized pieces. 4. Toss the vegetables in olive oil and spread them on a baking tray. Roast for about 15 minutes until tender. 5. Season the turkey breast and grill it until cooked through, about 6-8 minutes per side. 6. Serve the grilled turkey breast over the cooked quinoa with roasted vegetables on the side."
+          },
+          {
+            "name": "Beef Mince and Couscous with Steamed Broccoli",
+            "totals": {
+              "fat_g": 7.319999999999999,
+              "salt_g": 0.4590000000000001,
+              "fibre_g": 7.62,
+              "sugars_g": 4.109999999999999,
+              "protein_g": 47.718,
+              "energy_kcal": 574.1999999999999,
+              "saturates_g": 3.3621000000000003,
+              "carbohydrate_g": 77.65500000000002
+            },
+            "description": "Quick and easy lean beef mince cooked with fragrant couscous served alongside steamed fresh broccoli for a wholesome dinner.",
+            "ingredients": [
+              {
+                "name": "Beef mince, extra lean, raw",
+                "food_key": "8f1d03be2c1f059641534ea12955d67cf0def4050536c2721c0c4864c4d6d67e",
+                "quantity_g": 150,
+                "ingredient_id": 8,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Couscous, plain",
+                "food_key": "aba4479c132a76f9385afd95a4f3d08f0d79313666d4df918f91581db6958487",
+                "quantity_g": 90,
+                "ingredient_id": 31,
+                "preparation_state": "dry"
+              },
+              {
+                "name": "Broccoli, raw",
+                "food_key": "a858e45df7f432a19e90009a59c89426dc29f0d47af58f6f1c3156ff5e531b4d",
+                "quantity_g": 120,
+                "ingredient_id": 96,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Cook couscous by pouring boiling water over it, cover and let it absorb the water for 5 minutes. 2. In a non-stick pan, cook beef mince until browned and fully cooked. 3. Steam raw broccoli until tender but still bright green. 4. Fluff the couscous with a fork and mix with the cooked beef mince. 5. Plate the beef and couscous mixture with steamed broccoli on the side."
+          },
+          {
+            "name": "Chicken Thigh with Sweet Potato Mash and Green Peas",
+            "totals": {
+              "fat_g": 11.652,
+              "salt_g": 0.4855,
+              "fibre_g": 10,
+              "sugars_g": 16.262,
+              "protein_g": 37.316,
+              "energy_kcal": 446.5,
+              "saturates_g": 2.4307,
+              "carbohydrate_g": 47.526
+            },
+            "description": "Juicy chicken thigh paired with creamy mashed sweet potatoes and vibrant cooked green peas for a comforting and protein-rich dinner.",
+            "ingredients": [
+              {
+                "name": "Chicken thigh, raw",
+                "food_key": "96053e55c22e5f8328cd0e4c24a4237f028eec88f29fc6444d118e34d36af167",
+                "quantity_g": 150,
+                "ingredient_id": 12,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Sweet potatoes, peeled",
+                "food_key": "88f705ba9f4db3e8e8dd85ce58328d1f24e6965600e76028ada66da62619b4c8",
+                "quantity_g": 180,
+                "ingredient_id": 44,
+                "preparation_state": "boiled_unsalted"
+              },
+              {
+                "name": "Green peas, cooked, boiled, drained, unsalted",
+                "food_key": "7b7957df85a90c07f4b8f577e20567139d943db20d5934fcc5bf2e2755fcfeb3",
+                "quantity_g": 100,
+                "ingredient_id": 134,
+                "preparation_state": "cooked, boiled, drained, without salt"
+              },
+              {
+                "name": "Olive oil",
+                "food_key": "675d2cd97e8f83b20468c2a13122ac320c62891e8912594606af662e875a6bd4",
+                "quantity_g": 5,
+                "ingredient_id": 87,
+                "preparation_state": "ready_to_eat"
+              }
+            ],
+            "instructions": "1. Boil peeled sweet potatoes until tender, then mash until smooth. 2. Cook chicken thigh by roasting or pan-frying until fully cooked. 3. Heat cooked green peas by steaming or microwaving until warmed through. 4. Serve the chicken thigh alongside the sweet potato mash and green peas. 5. Optionally drizzle olive oil over the vegetables for extra flavor."
+          }
+        ],
+        "breakfast": [
+          {
+            "name": "Savory Rolled Oats with Turkey and Spinach",
+            "totals": {
+              "fat_g": 5.3999999999999995,
+              "salt_g": 0.34225,
+              "fibre_g": 6.9399999999999995,
+              "sugars_g": 0.807,
+              "protein_g": 30.328,
+              "energy_kcal": 339.2,
+              "saturates_g": 0.9513,
+              "carbohydrate_g": 42.19799999999999
+            },
+            "description": "A hearty savory breakfast porridge combining protein-rich turkey and fresh spinach with creamy oats.",
+            "ingredients": [
+              {
+                "name": "Rolled oats (porridge oats)",
+                "food_key": "1ee58b9c31914b02a29859c63741e16a0b059335a1406d759d9712d29a8537dc",
+                "quantity_g": 60,
+                "ingredient_id": 27,
+                "preparation_state": "dry"
+              },
+              {
+                "name": "Turkey breast, raw",
+                "food_key": "fc7209d1a242b8120bbb4466334d6bc8301faaaca68193ba45ec9a3288f71969",
+                "quantity_g": 90,
+                "ingredient_id": 3,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Spinach, raw",
+                "food_key": "cf818244fa05c9495fbe0abfa4c28d5ace15d94334678873596fab68a77d7f71",
+                "quantity_g": 40,
+                "ingredient_id": 98,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Cook the rolled oats with water until soft and creamy.\n2. Meanwhile, saut\u00e9 raw turkey breast until fully cooked.\n3. Add fresh spinach to the turkey and cook until wilted.\n4. Combine the cooked oats with the turkey and spinach mixture.\n5. Serve warm."
+          },
+          {
+            "name": "Greek Yogurt with Mixed Berries and Almonds",
+            "totals": {
+              "fat_g": 13.4815,
+              "salt_g": 0.138125,
+              "fibre_g": 6.595,
+              "sugars_g": 12.2175,
+              "protein_g": 21.4225,
+              "energy_kcal": 278.75,
+              "saturates_g": 1.1461,
+              "carbohydrate_g": 21.7885
+            },
+            "description": "A refreshing breakfast bowl of protein-packed Greek yogurt topped with a variety of berries and crunchy almonds.",
+            "ingredients": [
+              {
+                "name": "Greek yogurt, plain, nonfat (0% fat)",
+                "food_key": "1234db6a0b53fb593b0aa15d599feded3097788e43d2791fa785ce85585e7fbd",
+                "quantity_g": 150,
+                "ingredient_id": 136,
+                "preparation_state": "plain, nonfat"
+              },
+              {
+                "name": "Strawberries",
+                "food_key": "3ed56e76199ec9d2b1b1bd6f14466c6bdceb87aafbcfe69931f42b9f2c835eac",
+                "quantity_g": 40,
+                "ingredient_id": 53,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Blueberries",
+                "food_key": "74688c90a17a02c649d28b3dad98eb8ddd2e0fad1271ee685bbd0e24798078d9",
+                "quantity_g": 30,
+                "ingredient_id": 54,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Raspberries",
+                "food_key": "3c0ae985710c91369b609b721a2fc1ae9652b5c356971ecdb56a1b9b27fe9f41",
+                "quantity_g": 30,
+                "ingredient_id": 55,
+                "preparation_state": "raw"
+              },
+              {
+                "name": "Almonds",
+                "food_key": "a0f216df307bf563f7028cd35f9a49a5382fd87d74262312842979be0fba84e1",
+                "quantity_g": 25,
+                "ingredient_id": 77,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Place Greek yogurt in a bowl.\n2. Rinse and add fresh strawberries, blueberries, and raspberries on top.\n3. Sprinkle raw almonds over the berries.\n4. Serve immediately."
+          },
+          {
+            "name": "Scrambled Eggs with Sourdough Bread and Avocado",
+            "totals": {
+              "fat_g": 22.226,
+              "salt_g": 0.94225,
+              "fibre_g": 6.91,
+              "sugars_g": 2.5380000000000003,
+              "protein_g": 21.392,
+              "energy_kcal": 421,
+              "saturates_g": 5.2922,
+              "carbohydrate_g": 36.115
+            },
+            "description": "Classic scrambled eggs served with toasted sourdough bread and creamy avocado slices for a balanced breakfast.",
+            "ingredients": [
+              {
+                "name": "Eggs, whole, raw",
+                "food_key": "d8b257afd644fdcacec69276c7ecde5f96882d679c57f524c7e27aac1701a1e6",
+                "quantity_g": 120,
+                "ingredient_id": 137,
+                "preparation_state": "raw, whole"
+              },
+              {
+                "name": "Sourdough bread, white (Tesco Finest)",
+                "food_key": "8991535378fe86494368a4029fa2d8a982a2bc7a2e4083e02a016c81974b1d11",
+                "quantity_g": 60,
+                "ingredient_id": 35,
+                "preparation_state": "ready_to_eat"
+              },
+              {
+                "name": "Avocado",
+                "food_key": "bef64547da09bbf376431788a7ad4047fe02a86b4780f7b8d9a462023704313d",
+                "quantity_g": 70,
+                "ingredient_id": 76,
+                "preparation_state": "raw"
+              }
+            ],
+            "instructions": "1. Beat the raw whole eggs in a bowl.\n2. Cook the eggs in a non-stick pan over medium heat, stirring gently until softly scrambled.\n3. Toast the sourdough bread until golden.\n4. Slice the avocado.\n5. Serve the scrambled eggs alongside the toasted bread and avocado slices."
+          }
+        ]
+      },
+      "targets": {
+        "status": "ready",
+        "calories_kcal": 3210,
+        "protein_g": 240.75,
+        "carbohydrate_g": 361.125,
+        "fat_g": 89.16666666666667
+      }
+    }
+  ]
+}

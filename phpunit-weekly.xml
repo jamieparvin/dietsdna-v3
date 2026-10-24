@@ -7,6 +7,7 @@
             <file>tests/Unit/MealTargetAllocatorTest.php</file>
             <file>tests/Unit/WeeklyMealScheduleTest.php</file>
             <file>tests/Unit/MealPortionBalancerTest.php</file>
+            <file>tests/Unit/MealDistributionTest.php</file>
             <file>tests/Feature/WeeklyMealPlanningTest.php</file>
         </testsuite>
     </testsuites>

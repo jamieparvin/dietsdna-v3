@@ -7,10 +7,12 @@ use Illuminate\Validation\ValidationException;
 /** Numeric allocation against existing targets, not a nutrition prescription. */
 class MealPortionBalancer
 {
-    public const VERSION = 'portion-balance-v1';
+    public const VERSION = 'portion-balance-v2-meal-distribution';
+    public const MAIN_CALORIE_TOLERANCE = 0.25;
+    public const MAIN_PROTEIN_TOLERANCE = 0.30;
+    public const SNACK_CALORIE_TOLERANCE = 0.35;
     public const TOLERANCES = [0.05, 0.10, 0.10, 0.10];
     private const NUTRIENTS = ['energy_kcal', 'protein_g', 'carbohydrate_g', 'sugars_g', 'fat_g', 'saturates_g', 'fibre_g', 'salt_g'];
-    private const WEIGHTS = [4.0, 2.0, 1.0, 1.0];
 
     /**
      * $catalog is keyed by ingredient ID, with numeric nutrition PER 100 G.
@@ -20,6 +22,7 @@ class MealPortionBalancer
     public function balance(array $proposals, array $fixed, array $catalog, array $targets): array
     {
         $target = $this->targetVector($targets);
+        $mealTargets = $this->mealTargets($proposals, $fixed, $targets);
         $byDay = [];
         foreach ($proposals as $index => $proposal) {
             $byDay[$proposal['date']][] = $index;
@@ -61,7 +64,8 @@ class MealPortionBalancer
                     }
                     $upper = min(1000.0, $original * 3, $this->portionCap($food));
                     $lower = min($upper, max(0.01, $original * 0.25));
-                    $step = $upper >= 5 ? 1.0 : 0.01;
+                    $step = $food['fat_g'] >= 80 && $food['protein_g'] < 5
+                        ? 0.1 : ($upper >= 5 ? 1.0 : 0.01);
                     $lower = ceil(($lower - 1e-9) / $step) * $step;
                     $upper = floor(($upper + 1e-9) / $step) * $step;
                     if ($lower > $upper || $upper <= 0) {
@@ -79,28 +83,18 @@ class MealPortionBalancer
             if (! $variables) {
                 $this->fail("{$date}: there are no ingredients to adjust.");
             }
-            $best = null;
-            $bestScore = INF;
-            // Different starting points reduce avoidable failures near mass bounds.
-            $originalEnergy = 0.0;
-            foreach ($variables as $v) {
-                $originalEnergy += $v['vector'][0] * $v['original'];
+            $dayTargets = array_intersect_key($mealTargets, array_flip($indices));
+            $best = (new MealPortionOptimizer())->solve($variables, $base, $target, $dayTargets);
+            $mealMass = [];
+            foreach ($variables as $i => $v) {
+                if ($best[$i] < $v['lower'] - 1e-8 || $best[$i] > $v['upper'] + 1e-8) {
+                    $this->fail($date.': the numeric allocation exceeded an ingredient portion limit.');
+                }
+                $mealMass[$v['meal']] = ($mealMass[$v['meal']] ?? 0) + $best[$i];
             }
-            $scale = max(0.25, min(3.0, ($target[0] - $base[0]) / max(1, $originalEnergy)));
-            foreach ([1.0, $scale, 0.25] as $start) {
-                $quantities = $this->solve($variables, $base, $target, $start);
-                $actual = $base;
-                foreach ($variables as $i => $v) {
-                    $actual = $this->add($actual, $v['vector'], $quantities[$i]);
-                }
-                $score = $this->score($actual, $target);
-                if ($score < $bestScore) {
-                    $bestScore = $score;
-                    $best = $quantities;
-                }
-                if ($this->within($actual, $target)) {
-                    $best = $quantities;
-                    break;
+            foreach ($variables as $v) {
+                if ($mealMass[$v['meal']] > $v['mass_limit'] + 1e-8) {
+                    $this->fail($date.': this meal combination exceeded the meal weight limit.');
                 }
             }
             foreach ($variables as $i => $v) {
@@ -121,6 +115,7 @@ class MealPortionBalancer
                     'version' => self::VERSION,
                     'carbohydrate_basis' => 'estimated_available_total_minus_fibre',
                     'daily_targets' => $targets,
+                    'meal_targets' => $mealTargets[$index],
                 ];
             }
         }
@@ -153,75 +148,72 @@ class MealPortionBalancer
                     .'No new meals were saved. Try different meal options; existing planned meals remain unchanged.');
             }
         }
+        // Re-derive shares from current targets and fixed meals, never trust stored metadata.
+        $shares = $this->mealTargets($proposals, $fixed, $targets);
+        foreach ($proposals as $index => $proposal) {
+            $actual = $this->vector($proposal['snapshot']['totals']);
+            $share = $shares[$index];
+            $energyTolerance = $share['is_snack'] ? self::SNACK_CALORIE_TOLERANCE : self::MAIN_CALORIE_TOLERANCE;
+            $energyFits = abs($actual[0] / $share['calories_kcal'] - 1) <= $energyTolerance + 1e-9;
+            $proteinFits = $share['is_snack'] || abs($actual[1] / $share['protein_g'] - 1) <= self::MAIN_PROTEIN_TOLERANCE + 1e-9;
+            if (! $energyFits || ! $proteinFits) {
+                $this->fail($proposal['date'].' / '.ucfirst(str_replace('_', ' ', $proposal['slot']))
+                    .': this meal could not fit its calorie and protein share within the portion limits. '
+                    .'Try another generated option. No new meals were saved.');
+            }
+        }
     }
 
-    private function solve(array $variables, array $base, array $target, float $start): array
+    /**
+     * Allocate the remaining daily budget across NEW slots only.
+     * Existing meals contribute their actual nutrition and are never resized.
+     * Optional snacks get a 10% weight each; all full meals have equal weights.
+     * If fixed meals differ from those weights, redistribute the residual budget.
+     */
+    public function mealTargets(array $proposals, array $fixed, array $targets): array
     {
-        $q = [];
-        $mass = [];
-        foreach ($variables as $i => $v) {
-            $q[$i] = $v['lower'];
-            $mass[$v['meal']] = ($mass[$v['meal']] ?? 0) + $q[$i];
+        $daily = $this->targetVector($targets);
+        $days = [];
+        foreach ($proposals as $index => $row) {
+            $days[$row['date']]['new'][$index] = $row;
         }
-        foreach ($variables as $i => $v) {
-            if ($mass[$v['meal']] > $v['mass_limit'] + 1e-6) {
-                $this->fail('The minimum portions exceed the meal weight limit. Generate different options.');
+        foreach ($fixed as $row) {
+            if (isset($days[$row['date']])) {
+                $days[$row['date']]['fixed'][] = $row;
             }
         }
-        foreach ($variables as $i => $v) {
-            $upper = min($v['upper'], $v['mass_limit'] - $mass[$v['meal']] + $q[$i]);
-            $next = max($v['lower'], min($upper, $v['original'] * $start));
-            $mass[$v['meal']] += $next - $q[$i];
-            $q[$i] = $next;
-        }
-        $actual = $base;
-        foreach ($variables as $i => $v) {
-            $actual = $this->add($actual, $v['vector'], $q[$i]);
-        }
-        for ($sweep = 0; $sweep < 3000; $sweep++) {
-            $largest = 0.0;
-            foreach ($variables as $i => $v) {
-                $numerator = 0.0;
-                $denominator = 0.0;
-                for ($k = 0; $k < 4; $k++) {
-                    $coefficient = $v['vector'][$k] / $target[$k];
-                    $numerator += self::WEIGHTS[$k] * $coefficient * ($actual[$k] / $target[$k] - 1);
-                    $denominator += self::WEIGHTS[$k] * $coefficient ** 2;
-                }
-                if ($denominator <= 1e-18) {
-                    continue;
-                }
-                $upper = min($v['upper'], $v['mass_limit'] - $mass[$v['meal']] + $q[$i]);
-                $next = max($v['lower'], min($upper, $q[$i] - $numerator / $denominator));
-                $delta = $next - $q[$i];
-                $q[$i] = $next;
-                $mass[$v['meal']] += $delta;
-                $actual = $this->add($actual, $v['vector'], $delta);
-                $largest = max($largest, abs($delta));
+        $result = [];
+        foreach ($days as $date => $day) {
+            $all = array_merge(array_values($day['new']), $day['fixed'] ?? []);
+            $snacks = count(array_filter($all, fn ($r) => str_starts_with($r['slot'], 'snack')));
+            $main = count($all) - $snacks;
+            $mainWeight = $main > 0 ? max(0.1, 1 - 0.1 * $snacks) / $main : 1.0;
+            $remaining = $daily;
+            foreach ($day['fixed'] ?? [] as $row) {
+                $remaining = $this->add($remaining, $this->vector($row['snapshot']['totals']), -1);
             }
-            if ($largest < 0.00001) {
-                break;
-            }
-        }
-        // Floor first, then try one rounding step if it improves the objective.
-        foreach ($variables as $i => $v) {
-            $next = max($v['lower'], floor(($q[$i] + 1e-9) / $v['step']) * $v['step']);
-            $delta = $next - $q[$i];
-            $q[$i] = round($next, 2);
-            $mass[$v['meal']] += $delta;
-            $actual = $this->add($actual, $v['vector'], $delta);
-        }
-        foreach ($variables as $i => $v) {
-            if ($q[$i] + $v['step'] <= $v['upper'] + 1e-9 && $mass[$v['meal']] + $v['step'] <= $v['mass_limit'] + 1e-9) {
-                $trial = $this->add($actual, $v['vector'], $v['step']);
-                if ($this->score($trial, $target) < $this->score($actual, $target)) {
-                    $q[$i] = round($q[$i] + $v['step'], 2);
-                    $mass[$v['meal']] += $v['step'];
-                    $actual = $trial;
+            foreach ($remaining as $value) {
+                if ($value <= 0) {
+                    $this->fail($date.': existing meals leave insufficient calorie or macro budget for the empty slots. Existing meals were not changed.');
                 }
             }
+            $weights = [];
+            foreach ($day['new'] as $index => $row) {
+                $weights[$index] = str_starts_with($row['slot'], 'snack') ? 0.1 : $mainWeight;
+            }
+            $sum = array_sum($weights);
+            foreach ($day['new'] as $index => $row) {
+                $fraction = $weights[$index] / $sum;
+                $result[$index] = [
+                    'calories_kcal' => $remaining[0] * $fraction,
+                    'protein_g' => $remaining[1] * $fraction,
+                    'carbohydrate_g' => $remaining[2] * $fraction,
+                    'fat_g' => $remaining[3] * $fraction,
+                    'is_snack' => str_starts_with($row['slot'], 'snack'),
+                ];
+            }
         }
-        return $q;
+        return $result;
     }
 
     private function targetVector(array $targets): array
@@ -297,15 +289,6 @@ class MealPortionBalancer
             $left[$k] += $right[$k] * $scale;
         }
         return $left;
-    }
-
-    private function score(array $actual, array $target): float
-    {
-        $score = 0.0;
-        for ($k = 0; $k < 4; $k++) {
-            $score += self::WEIGHTS[$k] * ($actual[$k] / $target[$k] - 1) ** 2;
-        }
-        return $score;
     }
 
     private function within(array $actual, array $target): bool

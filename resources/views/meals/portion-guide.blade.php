@@ -2,6 +2,7 @@
     $portionGuide = collect($day['rows'])
         ->map(fn ($row) => $row['snapshot']['portion_balance'] ?? null)
         ->filter()
+        ->sortByDesc(fn ($guide) => ($guide['version'] ?? null) === \App\Services\Meals\MealPortionBalancer::VERSION)
         ->first();
     $estimatedAvailableCarbs = collect($day['rows'])->sum(
         fn ($row) => max(0,
@@ -25,7 +26,15 @@
             <summary style="cursor:pointer; min-height:44px; padding-top:10px;">How portions were checked</summary>
             New portions were checked against database calories (within 5%) and each macro guide
             (within 10%), using the estimated carbohydrate basis above.
-            These are planning tolerances, not exact nutrition measurements.
+            @if(($portionGuide['version'] ?? null) === \App\Services\Meals\MealPortionBalancer::VERSION)
+                <br>Full meals aim for equal shares of the remaining budget. Each optional snack
+                starts with a 10% daily weight. Existing meals are subtracted first.
+                New full meals are checked within 25% of their calorie share and 30% of their
+                protein share. Snacks are checked within 35% of their calorie share;
+                their protein can vary. Carbohydrate and fat shares guide the adjustment,
+                while their limits are checked across the day.
+            @endif
+            <br>These are planning tolerances, not exact nutrition measurements.
             Existing planned portions were preserved. Swapping meals later can change these totals.
         </details>
     </div>

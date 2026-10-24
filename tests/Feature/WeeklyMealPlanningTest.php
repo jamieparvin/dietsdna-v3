@@ -233,6 +233,35 @@ class WeeklyMealPlanningTest extends TestCase
         $this->assertDatabaseCount('saved_meals', 0);
     }
 
+    public function test_legacy_ready_preview_can_be_rebuilt_without_ai_or_plan_writes(): void
+    {
+        $draft = $this->failedStoredDraft();
+        $source = app(WeeklyMealPlanner::class)->source($this->owner);
+        $draft->update(['status' => 'ready', 'source_signature' => $source['legacySignature']]);
+        app(WeeklyMealPlanner::class)->rebalanceStored($draft);
+        $this->assertSame('ready', $draft->fresh()->status);
+        $this->assertSame($source['signature'], $draft->fresh()->source_signature);
+        $this->assertSame(0, $this->generationCalls);
+        $this->assertDatabaseCount('meal_plan_entries', 0);
+        $this->assertDatabaseCount('saved_meals', 0);
+    }
+
+    public function test_legacy_recovery_does_not_bypass_changed_profile_checks(): void
+    {
+        $draft = $this->failedStoredDraft();
+        $source = app(WeeklyMealPlanner::class)->source($this->owner);
+        $draft->update(['source_signature' => $source['legacySignature']]);
+        $this->owner->nutritionProfile()->update(['snacks_per_day' => 0]);
+        try {
+            app(WeeklyMealPlanner::class)->rebalanceStored($draft);
+            $this->fail('Changed profiles cannot migrate a legacy preview.');
+        } catch (ValidationException $exception) {
+            $this->assertSame('failed', $draft->fresh()->status);
+            $this->assertSame($source['legacySignature'], $draft->fresh()->source_signature);
+            $this->assertSame(0, $this->generationCalls);
+        }
+    }
+
     public function test_recovery_rejects_a_changed_profile_without_ai(): void
     {
         $draft = $this->failedStoredDraft();
@@ -292,7 +321,7 @@ class WeeklyMealPlanningTest extends TestCase
             'calories_kcal' => 500, 'protein_g' => 50, 'carbohydrate_g' => 40, 'fat_g' => 10,
         ]);
         foreach ($draft->proposals as $proposal) {
-            $this->assertSame('portion-balance-v1', $proposal['snapshot']['portion_balance']['version']);
+            $this->assertSame(\App\Services\Meals\MealPortionBalancer::VERSION, $proposal['snapshot']['portion_balance']['version']);
         }
     }
 
