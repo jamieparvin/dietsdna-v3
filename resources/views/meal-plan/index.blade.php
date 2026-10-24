@@ -441,6 +441,8 @@
             >
                 Browse saved meals
             </a>
+
+            @include('weekly-meals.plan-button')
         </div>
     </header>
 
@@ -652,6 +654,8 @@
                             <span class="pl-muted" style="font-size:12px">
                                 One saved portion
                             </span>
+
+                            @include('meal-plan.swap-link')
 
                             <form
                                 method="POST"

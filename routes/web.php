@@ -112,4 +112,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/meal-plan/{entry}', [MealPlanController::class, 'destroy'])
         ->whereNumber('entry')
         ->name('meal-plan.destroy');
+
+    require __DIR__.'/meal-planning.php';
 });

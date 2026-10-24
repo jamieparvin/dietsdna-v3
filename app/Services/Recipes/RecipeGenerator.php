@@ -95,6 +95,8 @@ PROMPT;
                     ],
                 ]);
         } catch (ConnectionException $exception) {
+            report($exception);
+            
             $this->fail(
                 'OpenAI could not be reached or the request timed out. '
                 .'No recipes were saved. The request was not automatically retried.'
