@@ -127,6 +127,9 @@ class FoodPreferenceGroupingSeeder extends Seeder
             'Greek yogurt' => [
                 'Greek yogurt, plain, nonfat (0% fat)',
             ],
+            'Eggs' => [
+                'Eggs, whole, raw',
+            ],
         ];
 
         DB::transaction(function () use ($groups) {

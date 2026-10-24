@@ -124,7 +124,7 @@ class FoodPreferenceController extends Controller
                     $displayCategory = match (
                         mb_strtolower(trim((string) $first->sub_category))
                     ) {
-                        'dairy' => 'Dairy',
+                        'dairy', 'eggs' => 'Dairy',
                         'plant proteins' => 'Plant proteins',
                         default => $first->category,
                     };

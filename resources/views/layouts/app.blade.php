@@ -588,6 +588,21 @@
                     >
                         Food preferences
                     </a>
+
+                    <a
+                        href="{{ route('meal-ideas.index') }}"
+                        class="nav-link {{ request()->routeIs('meal-ideas.*') ? 'active' : '' }}"
+                        @if(request()->routeIs('meal-ideas.*')) aria-current="page" @endif
+                    >
+                        Meal ideas
+                    </a>
+
+                    <a
+                        href="{{ route('saved-meals.index') }}"
+                        class="nav-link {{ request()->routeIs('saved-meals.*') ? 'active' : '' }}"
+                    >
+                        Saved meals
+                    </a>
                 @endif
 
                     @foreach ($upcomingItems as $item)

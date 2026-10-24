@@ -7,7 +7,10 @@ use App\Http\Controllers\Admin\RecipeGenerationController;
 use App\Http\Controllers\Admin\NutritionCalculatorSettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\FoodPreferenceController;
+use App\Http\Controllers\MealPlanController;
+use App\Http\Controllers\MealIdeaController;
 use App\Http\Controllers\NutritionProfileController;
+use App\Http\Controllers\SavedMealController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Support\Facades\Route;
 
@@ -86,4 +89,27 @@ Route::middleware('auth')->group(function () {
 
     Route::put('/food-preferences', [FoodPreferenceController::class, 'update'])
         ->name('food-preferences.update');
+
+    Route::get('/meal-ideas', [MealIdeaController::class, 'index'])
+        ->name('meal-ideas.index');
+
+    Route::post('/meal-ideas', [MealIdeaController::class, 'store'])
+        ->middleware('throttle:3,1')
+        ->name('meal-ideas.store');
+    
+    Route::get('/saved-meals', [SavedMealController::class, 'index'])
+        ->name('saved-meals.index');
+
+    Route::post('/saved-meals', [SavedMealController::class, 'store'])
+        ->name('saved-meals.store');
+
+    Route::get('/meal-plan', [MealPlanController::class, 'index'])
+        ->name('meal-plan.index');
+
+    Route::post('/meal-plan', [MealPlanController::class, 'store'])
+        ->name('meal-plan.store');
+
+    Route::delete('/meal-plan/{entry}', [MealPlanController::class, 'destroy'])
+        ->whereNumber('entry')
+        ->name('meal-plan.destroy');
 });
