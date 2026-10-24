@@ -750,6 +750,9 @@
                 </div>
             </footer>
         </form>
+
+        @include('nutrition-profile.macros')
+        
     </div>
 
     <script>

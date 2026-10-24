@@ -153,10 +153,11 @@
                 <h2>Save global settings</h2>
 
                 <p class="cs-note">
-                    Changes apply when customer targets are next calculated.
-                    Protein rules are selected by goal and resistance training;
-                    they are not added together. Carbohydrate receives the
-                    remaining calorie allocation.
+                    Changes apply when customer targets are next calculated. 
+                    Each goal uses protein, carbohydrate and fat percentages totalling 100%. 
+                    Users following goal defaults receive these settings. 
+                    Users with custom percentages keep their chosen split. 
+                    Existing planned meal portions remain unchanged.                    
                 </p>
 
                 <p class="cs-note">

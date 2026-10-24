@@ -114,4 +114,5 @@ Route::middleware('auth')->group(function () {
         ->name('meal-plan.destroy');
 
     require __DIR__.'/meal-planning.php';
+    require __DIR__.'/macro-preferences.php';
 });
