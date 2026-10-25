@@ -1,0 +1,408 @@
+{
+  "targets": {
+    "energy_kcal": 577.8,
+    "protein_g": 43.335,
+    "carbohydrate_g": 65.0025,
+    "fat_g": 16.05
+  },
+  "catalog": {
+    "2": {
+      "id": 2,
+      "name": "Chicken breast, raw",
+      "category": "Meat & poultry",
+      "sub_category": "Poultry",
+      "preparation_state": "raw",
+      "energy_kcal": "120.00000",
+      "protein_g": "22.50000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "2.62000",
+      "saturates_g": "0.56300",
+      "fibre_g": "0.00000",
+      "salt_g": "0.11250"
+    },
+    "3": {
+      "id": 3,
+      "name": "Turkey breast, raw",
+      "category": "Meat & poultry",
+      "sub_category": "Poultry",
+      "preparation_state": "raw",
+      "energy_kcal": "114.00000",
+      "protein_g": "23.66000",
+      "carbohydrate_g": "0.14000",
+      "sugars_g": "0.05000",
+      "fat_g": "1.48000",
+      "saturates_g": "0.28900",
+      "fibre_g": "0.00000",
+      "salt_g": "0.28250"
+    },
+    "27": {
+      "id": 27,
+      "name": "Rolled oats (porridge oats)",
+      "category": "Carbohydrates",
+      "sub_category": "Oats",
+      "preparation_state": "dry",
+      "energy_kcal": "379.00000",
+      "protein_g": "13.15000",
+      "carbohydrate_g": "67.70000",
+      "sugars_g": "0.99000",
+      "fat_g": "6.52000",
+      "saturates_g": "1.11000",
+      "fibre_g": "10.10000",
+      "salt_g": "0.01500"
+    },
+    "35": {
+      "id": 35,
+      "name": "Sourdough bread, white (Tesco Finest)",
+      "category": "Carbohydrates",
+      "sub_category": "Bread and wraps",
+      "preparation_state": "ready_to_eat",
+      "energy_kcal": "229.00000",
+      "protein_g": "8.20000",
+      "carbohydrate_g": "48.80000",
+      "sugars_g": "2.70000",
+      "fat_g": "0.90000",
+      "saturates_g": "0.10000",
+      "fibre_g": "3.70000",
+      "salt_g": "0.84000"
+    },
+    "44": {
+      "id": 44,
+      "name": "Sweet potatoes, peeled",
+      "category": "Carbohydrates",
+      "sub_category": "Potatoes",
+      "preparation_state": "boiled_unsalted",
+      "energy_kcal": "76.00000",
+      "protein_g": "1.37000",
+      "carbohydrate_g": "17.72000",
+      "sugars_g": "5.74000",
+      "fat_g": "0.14000",
+      "saturates_g": "0.03100",
+      "fibre_g": "2.50000",
+      "salt_g": "0.06750"
+    },
+    "53": {
+      "id": 53,
+      "name": "Strawberries",
+      "category": "Fruit",
+      "sub_category": "Berries",
+      "preparation_state": "raw",
+      "energy_kcal": "32.00000",
+      "protein_g": "0.67000",
+      "carbohydrate_g": "7.68000",
+      "sugars_g": "4.89000",
+      "fat_g": "0.30000",
+      "saturates_g": "0.01500",
+      "fibre_g": "2.00000",
+      "salt_g": "0.00250"
+    },
+    "54": {
+      "id": 54,
+      "name": "Blueberries",
+      "category": "Fruit",
+      "sub_category": "Berries",
+      "preparation_state": "raw",
+      "energy_kcal": "57.00000",
+      "protein_g": "0.74000",
+      "carbohydrate_g": "14.49000",
+      "sugars_g": "9.96000",
+      "fat_g": "0.33000",
+      "saturates_g": "0.02800",
+      "fibre_g": "2.40000",
+      "salt_g": "0.00250"
+    },
+    "55": {
+      "id": 55,
+      "name": "Raspberries",
+      "category": "Fruit",
+      "sub_category": "Berries",
+      "preparation_state": "raw",
+      "energy_kcal": "52.00000",
+      "protein_g": "1.20000",
+      "carbohydrate_g": "11.94000",
+      "sugars_g": "4.42000",
+      "fat_g": "0.65000",
+      "saturates_g": "0.01900",
+      "fibre_g": "6.50000",
+      "salt_g": "0.00250"
+    },
+    "96": {
+      "id": 96,
+      "name": "Broccoli, raw",
+      "category": "Vegetables",
+      "sub_category": "Brassicas",
+      "preparation_state": "raw",
+      "energy_kcal": "34.00000",
+      "protein_g": "2.82000",
+      "carbohydrate_g": "6.64000",
+      "sugars_g": "1.70000",
+      "fat_g": "0.37000",
+      "saturates_g": "0.11400",
+      "fibre_g": "2.60000",
+      "salt_g": "0.08250"
+    },
+    "98": {
+      "id": 98,
+      "name": "Spinach, raw",
+      "category": "Vegetables",
+      "sub_category": "Leafy greens",
+      "preparation_state": "raw",
+      "energy_kcal": "23.00000",
+      "protein_g": "2.86000",
+      "carbohydrate_g": "3.63000",
+      "sugars_g": "0.42000",
+      "fat_g": "0.39000",
+      "saturates_g": "0.06300",
+      "fibre_g": "2.20000",
+      "salt_g": "0.19750"
+    },
+    "136": {
+      "id": 136,
+      "name": "Greek yogurt, plain, nonfat (0% fat)",
+      "category": "Protein & dairy",
+      "sub_category": "Dairy",
+      "preparation_state": "plain, nonfat",
+      "energy_kcal": "59.00000",
+      "protein_g": "10.19000",
+      "carbohydrate_g": "3.60000",
+      "sugars_g": "3.24000",
+      "fat_g": "0.39000",
+      "saturates_g": "0.11700",
+      "fibre_g": "0.00000",
+      "salt_g": "0.09000"
+    },
+    "137": {
+      "id": 137,
+      "name": "Eggs, whole, raw",
+      "category": "Protein & dairy",
+      "sub_category": "Eggs",
+      "preparation_state": "raw, whole",
+      "energy_kcal": "143.00000",
+      "protein_g": "12.56000",
+      "carbohydrate_g": "0.72000",
+      "sugars_g": "0.38000",
+      "fat_g": "9.52000",
+      "saturates_g": "3.12000",
+      "fibre_g": "0.00000",
+      "salt_g": "0.35500"
+    },
+    "77": {
+      "id": 77,
+      "name": "Almonds",
+      "category": "Fats",
+      "sub_category": "Nuts",
+      "preparation_state": "raw",
+      "energy_kcal": "579.00000",
+      "protein_g": "21.15000",
+      "carbohydrate_g": "21.55000",
+      "sugars_g": "4.35000",
+      "fat_g": "49.93000",
+      "saturates_g": "3.80200",
+      "fibre_g": "12.50000",
+      "salt_g": "0.00250"
+    },
+    "87": {
+      "id": 87,
+      "name": "Olive oil",
+      "category": "Fats",
+      "sub_category": "Oils",
+      "preparation_state": "ready_to_eat",
+      "energy_kcal": "884.00000",
+      "protein_g": "0.00000",
+      "carbohydrate_g": "0.00000",
+      "sugars_g": "0.00000",
+      "fat_g": "100.00000",
+      "saturates_g": "13.80800",
+      "fibre_g": "0.00000",
+      "salt_g": "0.00500"
+    }
+  },
+  "ideas": [
+    {
+      "name": "Turkey and spinach omelette",
+      "description": "Breakfast regression example.",
+      "instructions": "Prepare the ingredients using the amounts in the ingredient list.",
+      "ingredients": [
+        {
+          "name": "Turkey breast, raw",
+          "preparation_state": "raw",
+          "quantity_g": 120
+        },
+        {
+          "name": "Eggs, whole, raw",
+          "preparation_state": "raw, whole",
+          "quantity_g": 100
+        },
+        {
+          "name": "Spinach, raw",
+          "preparation_state": "raw",
+          "quantity_g": 50
+        },
+        {
+          "name": "Sourdough bread, white (Tesco Finest)",
+          "preparation_state": "ready_to_eat",
+          "quantity_g": 60
+        }
+      ],
+      "totals": {},
+      "calorie_difference": -999
+    },
+    {
+      "name": "Oatmeal, Greek yogurt and berries",
+      "description": "Breakfast regression example.",
+      "instructions": "Prepare the ingredients using the amounts in the ingredient list.",
+      "ingredients": [
+        {
+          "name": "Rolled oats (porridge oats)",
+          "preparation_state": "dry",
+          "quantity_g": 80
+        },
+        {
+          "name": "Greek yogurt, plain, nonfat (0% fat)",
+          "preparation_state": "plain, nonfat",
+          "quantity_g": 150
+        },
+        {
+          "name": "Strawberries",
+          "preparation_state": "raw",
+          "quantity_g": 50
+        },
+        {
+          "name": "Blueberries",
+          "preparation_state": "raw",
+          "quantity_g": 50
+        },
+        {
+          "name": "Raspberries",
+          "preparation_state": "raw",
+          "quantity_g": 30
+        }
+      ],
+      "totals": {},
+      "calorie_difference": -999
+    },
+    {
+      "name": "Chicken with sweet potato and broccoli",
+      "description": "Breakfast regression example.",
+      "instructions": "Prepare the ingredients using the amounts in the ingredient list.",
+      "ingredients": [
+        {
+          "name": "Chicken breast, raw",
+          "preparation_state": "raw",
+          "quantity_g": 130
+        },
+        {
+          "name": "Sweet potatoes, peeled",
+          "preparation_state": "boiled_unsalted",
+          "quantity_g": 150
+        },
+        {
+          "name": "Broccoli, raw",
+          "preparation_state": "raw",
+          "quantity_g": 80
+        }
+      ],
+      "totals": {},
+      "calorie_difference": -999
+    }
+  ],
+  "fat_augmented_ideas": [
+    {
+      "name": "Turkey and spinach omelette",
+      "description": "Breakfast regression example.",
+      "instructions": "Prepare the ingredients using the amounts in the ingredient list.",
+      "ingredients": [
+        {
+          "name": "Turkey breast, raw",
+          "preparation_state": "raw",
+          "quantity_g": 120
+        },
+        {
+          "name": "Eggs, whole, raw",
+          "preparation_state": "raw, whole",
+          "quantity_g": 100
+        },
+        {
+          "name": "Spinach, raw",
+          "preparation_state": "raw",
+          "quantity_g": 50
+        },
+        {
+          "name": "Sourdough bread, white (Tesco Finest)",
+          "preparation_state": "ready_to_eat",
+          "quantity_g": 60
+        }
+      ],
+      "totals": {},
+      "calorie_difference": -999
+    },
+    {
+      "name": "Oatmeal, Greek yogurt and berries",
+      "description": "Breakfast regression example.",
+      "instructions": "Prepare the ingredients using the amounts in the ingredient list. Serve with the listed almonds.",
+      "ingredients": [
+        {
+          "name": "Rolled oats (porridge oats)",
+          "preparation_state": "dry",
+          "quantity_g": 80
+        },
+        {
+          "name": "Greek yogurt, plain, nonfat (0% fat)",
+          "preparation_state": "plain, nonfat",
+          "quantity_g": 150
+        },
+        {
+          "name": "Strawberries",
+          "preparation_state": "raw",
+          "quantity_g": 50
+        },
+        {
+          "name": "Blueberries",
+          "preparation_state": "raw",
+          "quantity_g": 50
+        },
+        {
+          "name": "Raspberries",
+          "preparation_state": "raw",
+          "quantity_g": 30
+        },
+        {
+          "name": "Almonds",
+          "preparation_state": "raw",
+          "quantity_g": 20
+        }
+      ],
+      "totals": {},
+      "calorie_difference": -999
+    },
+    {
+      "name": "Chicken with sweet potato and broccoli",
+      "description": "Breakfast regression example.",
+      "instructions": "Prepare the ingredients using the amounts in the ingredient list. Serve with the listed olive oil.",
+      "ingredients": [
+        {
+          "name": "Chicken breast, raw",
+          "preparation_state": "raw",
+          "quantity_g": 130
+        },
+        {
+          "name": "Sweet potatoes, peeled",
+          "preparation_state": "boiled_unsalted",
+          "quantity_g": 150
+        },
+        {
+          "name": "Broccoli, raw",
+          "preparation_state": "raw",
+          "quantity_g": 80
+        },
+        {
+          "name": "Olive oil",
+          "preparation_state": "ready_to_eat",
+          "quantity_g": 10
+        }
+      ],
+      "totals": {},
+      "calorie_difference": -999
+    }
+  ]
+}

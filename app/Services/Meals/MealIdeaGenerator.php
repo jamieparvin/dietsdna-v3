@@ -312,7 +312,27 @@ or bread where eligible. Provide different styles across the alternatives.
 
 Favour ingredients marked liked, while retaining variety.
 
-Aim towards the supplied meal targets using the supplied nutrition per 100 g.
+Aim towards ALL supplied meal targets using the supplied nutrition per 100 g,
+including the fat allocation, not only calories and protein.
+
+For every alternative, consider the fat supplied by the chosen protein,
+starchy carbohydrate and other ingredients at their proposed quantities.
+If this is insufficient to approach the supplied fat target, include a suitable fat source
+from the eligible catalog as part of that alternative. If the ingredients already
+supply enough fat, do not automatically add more.
+
+For familiar sweet breakfasts or snacks, eligible nuts, seeds or a catalog-listed
+nut butter may fit. For savoury meals, eligible olive oil, avocado, olives or other
+appropriate catalog foods may fit. These examples are not permission to use a food
+missing from the catalog or excluded by the user's choices. Dietary preferences
+still apply. Naturally fattier protein foods can supply the fat without a separate addition.
+
+Include any added fat food and its gram quantity in the ingredient list and actually
+use it in the preparation method. Do not invent an unlisted drizzle, spread or garnish.
+Do not rename whole nuts as nut butter, or otherwise change a catalog food's form.
+Keep all ingredient quantities practical; portion adjustment cannot invent a missing
+macro source. If the eligible catalog cannot support an alternative, follow the
+recipe generator's unsupported-request rule rather than inventing ingredients.
 
 The application will calculate the actual nutrition.
 
