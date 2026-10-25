@@ -202,17 +202,15 @@ class DashboardTest extends TestCase
             ->assertDontSee('<script>alert("method")</script>', false);
     }
 
-    public function test_fibre_card_sums_planned_snapshots_without_inventing_a_target(): void
+    public function test_four_summary_cards_keep_fibre_in_meal_details_and_available_carbohydrate(): void
     {
         $this->planned($this->owner);
         $this->planned($this->owner, '2026-10-25', 'lunch');
-        $response = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk()->assertSee('Fibre planned today');
+        $response = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk()->assertSee('10.0 g fibre')->assertDontSee('Fibre planned today');
         $this->assertEquals(20, $response->viewData('totals')['fibre_g']);
-        $this->assertCount(5, $response->viewData('metrics'));
-        $metric = collect($response->viewData('metrics'))->firstWhere('key', 'fibre_g');
-        $this->assertEquals(20, $metric['planned']);
-        $this->assertNull($metric['guide']);
-        $this->assertNull($metric['percent']);
+        $this->assertCount(4, $response->viewData('metrics'));
+        $this->assertNull(collect($response->viewData('metrics'))->firstWhere('key', 'fibre_g'));
+        $this->assertEquals(100, $response->viewData('totals')['estimated_available_carbohydrate_g']);
     }
 
     public function test_missing_fibre_is_not_reported_as_zero(): void
@@ -221,8 +219,10 @@ class DashboardTest extends TestCase
             'energy_kcal' => 500, 'protein_g' => 40, 'carbohydrate_g' => 60, 'fat_g' => 12,
         ]);
         $this->planned($this->owner, '2026-10-25', 'lunch');
-        $response = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk()->assertSee('Some planned fibre data is unavailable.');
+        $response = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk()->assertSee('Some planned nutrition is unavailable.')->assertSee('— g fibre');
         $this->assertNull($response->viewData('totals')['fibre_g']);
+        $this->assertNull($response->viewData('totals')['estimated_available_carbohydrate_g']);
+        $this->assertCount(4, $response->viewData('metrics'));
     }
 
 }

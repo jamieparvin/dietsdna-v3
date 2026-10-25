@@ -71,7 +71,7 @@ class IngredientImportController extends Controller
 
             $action = ! $ingredient
                 ? 'new'
-                : ($before === $this->signature(new Ingredient($data))
+                : ($this->signature($ingredient, false) === $this->signature(new Ingredient($data), false)
                     ? 'unchanged'
                     : 'update');
 
@@ -452,7 +452,7 @@ class IngredientImportController extends Controller
         }
     }
 
-    private function signature(?Ingredient $ingredient): ?string
+    private function signature(?Ingredient $ingredient, bool $includeGrouping = true): ?string
     {
         if (! $ingredient) {
             return null;
@@ -461,7 +461,9 @@ class IngredientImportController extends Controller
         return hash(
             'sha256',
             json_encode(
-                $ingredient->only(self::HEADERS),
+                $ingredient->only($includeGrouping
+                    ? [...self::HEADERS, 'preference_key', 'preference_group_key', 'preference_food']
+                    : self::HEADERS),
                 JSON_THROW_ON_ERROR
             )
         );

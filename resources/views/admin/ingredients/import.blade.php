@@ -88,6 +88,9 @@
                 <strong>Ingredients</strong>, using your 14-column template.
                 Values must be per 100g, with total carbohydrate including fibre.
             </p>
+            <p>Updates preserve existing food-preference groups, including renamed or recategorised foods.
+                New ingredients start as separate foods. After importing a new preparation, open Edit ingredient
+                and explicitly link it to the existing food group. No names are matched automatically.</p>
 
             <form
                 method="POST"

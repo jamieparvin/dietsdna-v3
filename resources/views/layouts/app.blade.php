@@ -3,7 +3,7 @@
 
     $upcomingItems = $isAdminArea
         ? ['Meal plans', 'Imports', 'Settings']
-        : ['Recipes', 'Shopping list', 'Food diary', 'Progress'];
+        : ['Recipes', 'Food diary', 'Progress'];
 @endphp
 
 <!DOCTYPE html>
@@ -612,6 +612,12 @@
                         @endif
                     >
                         Meal plan
+                    </a>
+
+                    <a href="{{ route('shopping-list.index') }}"
+                        class="nav-link {{ request()->routeIs('shopping-list.*') ? 'active' : '' }}"
+                        @if(request()->routeIs('shopping-list.*')) aria-current="page" @endif>
+                        Shopping list
                     </a>
                 @endif
 

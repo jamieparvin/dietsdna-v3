@@ -63,7 +63,7 @@ class FoodPreferenceController extends Controller
                 ->pluck('food_key')
                 ->all();
 
-            $allowedKeys = $this->foods($existingKeys)
+            $allowedKeys = $this->foods($existingKeys, true)
                 ->pluck('id')
                 ->all();
 
@@ -107,14 +107,15 @@ class FoodPreferenceController extends Controller
             ->with('status', 'Your food preferences have been saved.');
     }
 
-    private function foods(array $savedKeys)
+    private function foods(array $savedKeys, bool $lock = false)
     {
         return Ingredient::query()
+            ->when($lock, fn ($query) => $query->lockForUpdate())
             ->orderBy('category')
             ->orderBy('name')
             ->orderBy('id')
             ->get()
-            ->groupBy(fn ($ingredient) => $this->foodKey($ingredient))
+            ->groupBy(fn ($ingredient) => $ingredient->preferenceFoodKey())
             ->map(function ($variants, $key) {
                 $first = $variants->first();
 
@@ -150,17 +151,5 @@ class FoodPreferenceController extends Controller
     {
         return trim((string) $ingredient->preference_food)
             ?: trim($ingredient->name);
-    }
-
-    private function foodKey(Ingredient $ingredient): string
-    {
-        $normalise = fn ($value) => mb_strtolower(
-            preg_replace('/\s+/u', ' ', trim((string) $value))
-        );
-
-        return hash('sha256', json_encode([
-            $normalise($ingredient->category),
-            $normalise($this->foodName($ingredient)),
-        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 }

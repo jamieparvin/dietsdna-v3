@@ -8,12 +8,9 @@
     $hour = now('Europe/London')->hour;
     $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
     $ready = ($targets['status'] ?? null) === 'ready';
-    $format = fn ($value, $decimals = 1) => $value === null ? '—' : number_format($value, $decimals);
+    $format = fn ($value, $decimals = 1) => \App\Services\Nutrition\SnapshotNutrition::format($value, $decimals);
 
-    $dashboardMetrics = array_values(array_filter(
-        $metrics,
-        fn ($metric) => $metric['key'] !== 'fibre_g'
-    ));
+    $dashboardMetrics = $metrics;
     $showNextWeek = request()->query('dashboard_week') === 'next';
     $displayWeekStart = \Carbon\CarbonImmutable::instance($weekStart);
     $displayWeekDays = $weekDays;
@@ -173,10 +170,12 @@
                 <span class="dn-caption">{{ $metric['guide'] === null ? 'Guide unavailable' : 'Daily guide' }}</span>
                 <p class="dn-planned">
 <strong>{{ $format($metric['planned'], $metric['decimals']) }} {{ $metric['unit'] }}</strong> planned today</p>
+                @if($metric['percent'] !== null)
                 <div class="dn-track" aria-hidden="true">
 <span style="width:{{ $metric['percent'] === null ? 0 : min(100, max(0, $metric['percent'])) }}%">
 </span>
 </div>
+                @endif
                 <p class="dn-comparison">
                     
 @if($metric['planned'] === null)

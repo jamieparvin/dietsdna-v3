@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\GenerateWeeklyMealDraft;
 use App\Models\WeeklyMealDraft;
+use App\Services\Nutrition\SnapshotNutrition;
 use App\Services\Meals\WeeklyMealPlanner;
 use App\Services\Meals\MealPlanWeekState;
 use App\Services\Meals\WeeklyMealSchedule;
@@ -100,7 +101,6 @@ class WeeklyMealPlanController extends Controller
         for ($offset = 0; $offset < 7; $offset++) {
             $date = $draft->start_date->addDays($offset);
             $rows = [];
-            $totals = ['energy_kcal' => 0, 'protein_g' => 0, 'carbohydrate_g' => 0, 'fat_g' => 0];
 
             $orderedSlots = collect($draft->slots)->sortBy(
                 fn ($label, $slot) => \App\Services\Meals\MealPlanSlots::displayOrder($slot)
@@ -111,24 +111,17 @@ class WeeklyMealPlanController extends Controller
                 $proposal = $proposals->get($key);
                 $snapshot = $entry?->snapshot ?? ($proposal['snapshot'] ?? null);
                 $rows[] = ['label' => $label, 'snapshot' => $snapshot, 'existing' => (bool) $entry];
-
-                if ($snapshot) {
-                    foreach (array_keys($totals) as $field) {
-                        $totals[$field] += $snapshot['totals'][$field];
-                    }
-                }
             }
 
             // Older slots outside today's profile remain preserved and counted.
             foreach ($existing as $entry) {
                 if (! $replacing && $entry->plan_date->format('Y-m-d') === $date->toDateString() && ! isset($draft->slots[$entry->slot])) {
                     $rows[] = ['label' => ucfirst(str_replace('_', ' ', $entry->slot)).' — previous pattern', 'snapshot' => $entry->snapshot, 'existing' => true];
-                    foreach (array_keys($totals) as $field) {
-                        $totals[$field] += $entry->snapshot['totals'][$field];
-                    }
                 }
             }
 
+            $totals = SnapshotNutrition::aggregate(collect($rows)
+                ->whereNotNull('snapshot')->pluck('snapshot'));
             $days[] = compact('date', 'rows', 'totals');
         }
 

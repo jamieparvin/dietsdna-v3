@@ -6,6 +6,7 @@ use App\Models\MealPlanEntry;
 use App\Models\SavedMeal;
 use App\Services\Meals\MealPlanSlots;
 use App\Services\Nutrition\NutritionTargetCalculator;
+use App\Services\Nutrition\SnapshotNutrition;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -35,28 +36,11 @@ class DashboardController extends Controller
         }
         $orderedSlots = collect($slots)->sortBy(fn ($label, $slot) => MealPlanSlots::displayOrder($slot))->all();
         $rows = [];
-        $totals = ['energy_kcal' => 0.0, 'protein_g' => 0.0, 'carbohydrate_g' => 0.0,
-            'fat_g' => 0.0, 'fibre_g' => 0.0, 'estimated_available_carbohydrate_g' => 0.0];
+        $totals = SnapshotNutrition::aggregate($entries->pluck('snapshot'));
         foreach ($orderedSlots as $slot => $label) {
             $entry = $entries->get($slot);
             $snapshot = $entry?->snapshot ?? [];
-            $nutrition = [];
-            foreach (array_keys($totals) as $field) {
-                $nutrition[$field] = $this->number($snapshot['totals'][$field] ?? null);
-            }
-            if ($nutrition['estimated_available_carbohydrate_g'] === null) {
-                $carbs = $nutrition['carbohydrate_g'];
-                $fibre = $this->number($snapshot['totals']['fibre_g'] ?? null);
-                if ($carbs !== null && $fibre !== null && $fibre <= $carbs) {
-                    $nutrition['estimated_available_carbohydrate_g'] = $carbs - $fibre;
-                }
-            }
-            if ($entry) {
-                foreach ($totals as $field => $value) {
-                    // Missing historical nutrition is unknown, never silently zero.
-                    $totals[$field] = $value === null || $nutrition[$field] === null ? null : $value + $nutrition[$field];
-                }
-            }
+            $nutrition = SnapshotNutrition::totals($snapshot);
             $rows[] = compact('slot', 'label', 'entry', 'snapshot', 'nutrition');
         }
         $definitions = [
@@ -64,10 +48,9 @@ class DashboardController extends Controller
             ['key' => 'protein_g', 'target' => 'protein_g', 'label' => 'Protein', 'unit' => 'g', 'decimals' => 1, 'color' => '#6688ae'],
             ['key' => 'estimated_available_carbohydrate_g', 'target' => 'carbohydrate_g', 'label' => 'Available carbs', 'unit' => 'g', 'decimals' => 1, 'color' => '#c49a51'],
             ['key' => 'fat_g', 'target' => 'fat_g', 'label' => 'Fat', 'unit' => 'g', 'decimals' => 1, 'color' => '#a77997'],
-            ['key' => 'fibre_g', 'target' => null, 'label' => 'Fibre', 'unit' => 'g', 'decimals' => 1, 'color' => '#718943'],
         ];
         $metrics = array_map(function ($metric) use ($targets, $totals) {
-            $guide = $metric['target'] !== null && ($targets['status'] ?? null) === 'ready' ? $this->number($targets[$metric['target']] ?? null) : null;
+            $guide = $metric['target'] !== null && ($targets['status'] ?? null) === 'ready' ? SnapshotNutrition::number($targets[$metric['target']] ?? null) : null;
             $planned = $totals[$metric['key']];
             $percent = $planned !== null && $guide !== null && $guide > 0 ? 100 * $planned / $guide : null;
             return $metric + compact('guide', 'planned', 'percent');
@@ -84,10 +67,5 @@ class DashboardController extends Controller
         $weekPlannedDays = collect($weekDays)->where('count', '>', 0)->count();
         return view('dashboard', compact('today', 'date', 'profile', 'targets', 'rows', 'totals',
             'metrics', 'weekDays', 'weekStart', 'savedCount', 'patternCount', 'currentFilled', 'plannedCount', 'weekPlannedDays'));
-    }
-
-    private function number(mixed $value): ?float
-    {
-        return is_numeric($value) && is_finite((float) $value) && (float) $value >= 0 ? (float) $value : null;
     }
 }

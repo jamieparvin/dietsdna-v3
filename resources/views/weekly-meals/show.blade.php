@@ -294,15 +294,36 @@
             padding: 16px;
         }
 
-        .wp-confirm-actions {
-            flex-direction: column;
-        }
-
-        .wp-confirm-actions form,
-        .wp-confirm-actions button {
-            width: 100%;
-        }
+        .wp-confirm-actions { gap: 8px; }
+        .wp-preview .wp-confirm-actions .wm-button { padding: 12px 8px; font-size: 12px; }
     }
+
+    .wp-total { padding:21px; background:#fff; border-color:#dfe7df; border-radius:15px; }
+    .wp-total .wp-metric-label { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:650; color:#50665a; }
+    .wp-total .wp-dot { width:8px; height:8px; border-radius:50%; background:var(--metric-color); flex:none; }
+    .wp-total > strong { margin:15px 0 2px; font-size:29px; letter-spacing:-.6px; line-height:1.3; }
+    .wp-total .wp-caption { margin:0; font-size:11px; color:#61756a; }
+    .wp-total .wp-planned { margin:15px 0 8px; font-size:12px; color:#4f6558; line-height:1.5; }
+    .wp-total .wp-planned b { color:#254937; }
+    .wp-track { height:5px; background:#edf2ec; border-radius:8px; overflow:hidden; }
+    .wp-track i { display:block; height:100%; background:var(--metric-color); border-radius:8px; }
+    .wp-total .wp-difference { margin:9px 0 0; font-size:11px; color:#61756a; line-height:1.6; }
+    .wp-nutrition-info { margin:-3px 0 20px; font-size:12px; color:#61756a; line-height:1.7; }
+    .wp-nutrition-info summary { color:#365f46; cursor:pointer; font-weight:650; min-height:44px; padding:10px 0; }
+    .wp-nutrition-info p { margin:0; }
+    .wp-confirm h2 { margin:0 0 9px; font-size:19px; color:#193d31; }
+    .wp-replace-check { display:flex; align-items:flex-start; gap:10px; line-height:1.6; margin:0 0 20px; cursor:pointer; font-size:13px; }
+    .wp-replace-check input { width:20px!important; height:20px; flex:none; margin-top:2px; }
+    .wp-confirm .wp-confirm-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:520px; }
+    .wp-confirm .wp-confirm-actions form { min-width:0; width:100%; margin:0; display:flex; }
+    .wp-preview .wp-confirm .wp-confirm-actions .wm-button { width:100%; min-height:48px; border-radius:9px; font-weight:700; }
+    @media(max-width:600px) {
+        .wp-total { padding:17px 14px; }
+        .wp-total > strong { font-size:25px; }
+        .wp-confirm .wp-confirm-actions { gap:8px; max-width:none; }
+        .wp-preview .wp-confirm .wp-confirm-actions .wm-button { padding:12px 8px; font-size:12px; }
+    }
+
 </style>
 
 <div class="wm-page wp-preview">
@@ -395,7 +416,8 @@
 
     @elseif($draft->status === 'cancelled')
         <div class="wm-notice">
-            This preview was cancelled. No meals were applied from it.
+            Your current plan is kept. You can swap any meals you don’t like from your meal plan.
+            <a href="{{ route('meal-plan.index', ['date' => $draft->start_date->toDateString()]) }}">Open meal plan to swap meals →</a>
         </div>
 
     @elseif($draft->status === 'confirmed')
@@ -407,11 +429,11 @@
     @elseif($draft->status === 'ready')
         <div class="wm-notice">
             @if($replacing)
-                Review this complete replacement for {{ $draft->start_date->format('j M') }} – {{ $draft->start_date->addDays(6)->format('j M Y') }}.
-                Your current week stays in place until you confirm below. Confirmation replaces all dated meal entries for this week, including slots from an earlier meal pattern. Saved meals remain available.
+                Keep your current plan and swap individual meals you don’t like, or choose this new week instead.
+                Review the days below, then make your choice at the bottom.
             @else
-                Review each day before adding the week. Meals marked “Keep existing” stay in your plan.
-                New suggestions fill empty slots and are also saved as reusable meal options.
+                Review your week, then add it to your meal plan. You can swap individual meals afterwards using your saved options.
+                Meals marked “Keep existing” are already in your plan.
             @endif
         </div>
         @if($planChanged)
@@ -421,10 +443,6 @@
             </div>
         @endif
 
-        <p class="wm-muted">
-            Totals reflect the portions shown. They may differ
-            from your daily calorie and macro guides.
-        </p>
 
         <nav
             id="weekly-day-navigation"
@@ -462,42 +480,53 @@
                         {{ $day['date']->format('l, j F') }}
                     </h2>
 
-                    <div class="wp-totals">
-                        <div class="wp-total">
-                            <span>Calories</span>
-                            <strong>
-                                {{ number_format($day['totals']['energy_kcal']) }}
-                                <small>kcal</small>
-                            </strong>
-                        </div>
-
-                        <div class="wp-total">
-                            <span>Protein</span>
-                            <strong>
-                                {{ number_format($day['totals']['protein_g'], 1) }}
-                                <small>g</small>
-                            </strong>
-                        </div>
-
-                        <div class="wp-total">
-                            <span>Total carbs</span>
-                            <strong>
-                                {{ number_format($day['totals']['carbohydrate_g'], 1) }}
-                                <small>g</small>
-                            </strong>
-                        </div>
-
-                        <div class="wp-total">
-                            <span>Fat</span>
-                            <strong>
-                                {{ number_format($day['totals']['fat_g'], 1) }}
-                                <small>g</small>
-                            </strong>
-                        </div>
+                    @php
+                        $previewGuide = collect($day['rows'])
+                            ->map(fn ($row) => $row['snapshot']['portion_balance'] ?? null)
+                            ->filter()
+                            ->sortByDesc(fn ($guide) => ($guide['version'] ?? null) === \App\Services\Meals\MealPortionBalancer::VERSION)
+                            ->first();
+                        $guideTargets = $previewGuide['daily_targets'] ?? [];
+                        $previewNumber = fn ($value) => \App\Services\Nutrition\SnapshotNutrition::number($value);
+                        $availableCarbs = $day['totals']['estimated_available_carbohydrate_g'];
+                        $previewMetrics = [
+                            ['label' => 'Calories', 'planned' => $previewNumber($day['totals']['energy_kcal'] ?? null), 'guide' => $previewNumber($guideTargets['calories_kcal'] ?? null), 'unit' => 'kcal', 'decimals' => 0, 'color' => '#19815a'],
+                            ['label' => 'Protein', 'planned' => $previewNumber($day['totals']['protein_g'] ?? null), 'guide' => $previewNumber($guideTargets['protein_g'] ?? null), 'unit' => 'g', 'decimals' => 1, 'color' => '#6688ae'],
+                            ['label' => 'Available carbs', 'planned' => $availableCarbs, 'guide' => $previewNumber($guideTargets['carbohydrate_g'] ?? null), 'unit' => 'g', 'decimals' => 1, 'color' => '#c49a51'],
+                            ['label' => 'Fat', 'planned' => $previewNumber($day['totals']['fat_g'] ?? null), 'guide' => $previewNumber($guideTargets['fat_g'] ?? null), 'unit' => 'g', 'decimals' => 1, 'color' => '#a77997'],
+                        ];
+                    @endphp
+                    <div class="wp-totals" aria-label="Daily nutrition guide and preview amounts">
+                        @foreach($previewMetrics as $metric)
+                            @php
+                                $mainFigure = $metric['guide'] ?? $metric['planned'];
+                                $percent = $metric['planned'] !== null && $metric['guide'] !== null && $metric['guide'] > 0 ? min(100, 100 * $metric['planned'] / $metric['guide']) : null;
+                            @endphp
+                            <div class="wp-total" style="--metric-color:{{ $metric['color'] }}">
+                                <div class="wp-metric-label"><i class="wp-dot" aria-hidden="true"></i>{{ $metric['label'] }}</div>
+                                <strong>{{ $mainFigure === null ? '—' : number_format($mainFigure, $metric['decimals']) }} <small>{{ $metric['unit'] }}</small></strong>
+                                <p class="wp-caption">{{ $metric['guide'] === null ? 'Planned for this day' : 'Daily guide' }}</p>
+                                <p class="wp-planned"><b>{{ $metric['planned'] === null ? '—' : number_format($metric['planned'], $metric['decimals']) }} {{ $metric['unit'] }}</b> in this preview</p>
+                                @if($percent !== null)
+                                <div class="wp-track" aria-hidden="true"><i style="width:{{ $percent }}%"></i></div>
+                                @endif
+                                <p class="wp-difference">
+                                    @if($metric['planned'] !== null && $metric['guide'] !== null)
+                                        {{ number_format(abs($metric['planned'] - $metric['guide']), $metric['decimals']) }} {{ $metric['unit'] }} {{ $metric['planned'] > $metric['guide'] ? 'above' : 'below' }} guide
+                                    @elseif($metric['planned'] === null)
+                                        Some planned nutrition is unavailable.
+                                    @else
+                                        Nutrition from the saved meal portions.
+                                    @endif
+                                </p>
+                            </div>
+                        @endforeach
                     </div>
+                    <details class="wp-nutrition-info">
+                        <summary>About these nutrition figures</summary>
+                        <p>Figures describe the portions in this preview. Available carbs are estimated as total carbohydrate minus fibre; individual meal cards show total carbohydrate. Swapping a meal can change the day’s totals.</p>
+                    </details>
 
-                    @include('meals.portion-guide', ['day' => $day])
-                    
                     <div class="wp-meals">
                         @foreach($day['rows'] as $row)
                             <article class="wp-meal">
@@ -520,22 +549,22 @@
 
                                     <div class="wp-macros">
                                         <span>
-                                            {{ number_format($meal['totals']['energy_kcal']) }}
+                                            {{ \App\Services\Nutrition\SnapshotNutrition::format($meal['totals']['energy_kcal'] ?? null, 0) }}
                                             kcal
                                         </span>
 
                                         <span>
-                                            {{ number_format($meal['totals']['protein_g'], 1) }}
+                                            {{ \App\Services\Nutrition\SnapshotNutrition::format($meal['totals']['protein_g'] ?? null, 1) }}
                                             g protein
                                         </span>
 
                                         <span>
-                                            {{ number_format($meal['totals']['carbohydrate_g'], 1) }}
+                                            {{ \App\Services\Nutrition\SnapshotNutrition::format($meal['totals']['carbohydrate_g'] ?? null, 1) }}
                                             g total carbs
                                         </span>
 
                                         <span>
-                                            {{ number_format($meal['totals']['fat_g'], 1) }}
+                                            {{ \App\Services\Nutrition\SnapshotNutrition::format($meal['totals']['fat_g'] ?? null, 1) }}
                                             g fat
                                         </span>
                                     </div>
@@ -573,51 +602,35 @@
             @endforeach
         </div>
 
-        <section class="wp-confirm">
+        <section class="wp-confirm" aria-labelledby="weekly-choice-heading">
+            <h2 id="weekly-choice-heading">Make this week yours</h2>
             <p class="wm-muted">
                 @if($replacing)
-                    Replace only this week once you are happy with the new meals. Your Saved meals stay available for swaps.
+                    Choose <strong>Keep current plan</strong> to keep your existing week. Then open your meal plan and use <strong>Swap meal</strong> to replace any meals you don’t like with your saved options.
+                    Or choose <strong>Replace this week</strong> to use the meals in this preview instead.
                 @else
-                    Add the full week when you’re ready. Your existing meals will stay in place.
-                    You can swap meals afterwards from your meal plan.
+                    Add this week to your plan, then use <strong>Swap meal</strong> to replace any meals you don’t like with your saved options.
                 @endif
             </p>
 
+            @if($replacing)
+                <label class="wp-replace-check">
+                    <input type="checkbox" name="replace_confirmed" value="1" form="weekly-confirm-form" required>
+                    <span>Replace my current plan for {{ $draft->start_date->format('j M') }} – {{ $draft->start_date->addDays(6)->format('j M Y') }} with these meals.</span>
+                </label>
+            @endif
+
             <div class="wp-confirm-actions">
-                <form
-                    method="POST"
-                    action="{{ route('weekly-meals.confirm', $draft->id) }}"
-                    id="weekly-confirm-form"
-                >
+                <form method="POST" action="{{ route('weekly-meals.cancel', $draft->id) }}">
                     @csrf
-                    @if($replacing)
-                        <label style="display:flex;align-items:flex-start;gap:10px;line-height:1.6;margin-bottom:16px;cursor:pointer">
-                            <input type="checkbox" name="replace_confirmed" value="1" required style="width:20px!important;height:20px;flex:none;margin-top:3px">
-                            <span>Replace my current plan for {{ $draft->start_date->format('j M') }} – {{ $draft->start_date->addDays(6)->format('j M Y') }} with these meals.</span>
-                        </label>
-                    @endif
-                    <button
-                        type="submit"
-                        class="wm-button"
-                        id="weekly-confirm-button"
-                        data-busy="{{ $replacing ? 'Replacing week…' : 'Adding meals…' }}"
-                        @if($planChanged) disabled @endif
-                    >
-                        {{ $replacing ? 'Replace this week' : 'Add this week to my plan' }}
-                    </button>
+                    <button type="submit" class="wm-button wm-secondary">{{ $replacing ? 'Keep current plan' : 'Discard preview' }}</button>
                 </form>
-
-                <form
-                    method="POST"
-                    action="{{ route('weekly-meals.cancel', $draft->id) }}"
-                >
+                <form method="POST" action="{{ route('weekly-meals.confirm', $draft->id) }}" id="weekly-confirm-form">
                     @csrf
-
-                    <button
-                        type="submit"
-                        class="wm-button wm-secondary"
-                    >
-                        {{ $replacing ? 'Keep current plan' : 'Discard preview' }}
+                    <button type="submit" class="wm-button" id="weekly-confirm-button"
+                        data-busy="{{ $replacing ? 'Replacing week…' : 'Adding meals…' }}"
+                        @disabled($planChanged)>
+                        {{ $replacing ? 'Replace this week' : 'Add this week to my plan' }}
                     </button>
                 </form>
             </div>

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
+use App\Services\Nutrition\FoodPreferenceGroups;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class IngredientController extends Controller
@@ -60,16 +62,12 @@ class IngredientController extends Controller
 
     public function create()
     {
-        return view('admin.ingredients.form', [
-            'ingredient' => new Ingredient(['is_active' => true]),
-        ]);
+        return $this->form(new Ingredient(['is_active' => true]));
     }
 
     public function store(Request $request)
     {
-        $ingredient = Ingredient::create(
-            $this->validatedData($request)
-        );
+        $ingredient = $this->saveIngredient($this->validatedData($request));
 
         return redirect()
             ->route('admin.ingredients.edit', $ingredient)
@@ -78,18 +76,61 @@ class IngredientController extends Controller
 
     public function edit(Ingredient $ingredient)
     {
-        return view('admin.ingredients.form', compact('ingredient'));
+        return $this->form($ingredient);
     }
 
     public function update(Request $request, Ingredient $ingredient)
     {
-        $ingredient->update(
-            $this->validatedData($request, $ingredient)
-        );
+        $this->saveIngredient($this->validatedData($request, $ingredient), $ingredient);
 
         return redirect()
             ->route('admin.ingredients.edit', $ingredient)
             ->with('status', 'Ingredient updated successfully.');
+    }
+
+    private function form(Ingredient $ingredient)
+    {
+        $foods = Ingredient::query()->orderBy('name')->orderBy('id')->get();
+        $preferenceGroups = $foods->unique(fn ($food) => $food->preferenceFoodKey());
+        $linkedPreparations = $ingredient->exists
+            ? $foods->filter(fn ($food) => $food->preferenceFoodKey() === $ingredient->preferenceFoodKey())
+            : collect();
+
+        $shoppingIngredients = $foods
+            ->filter(fn ($food) =>
+                $food->is_active
+                || (int) $food->id === (int) $ingredient->shopping_ingredient_id
+            )
+            ->values();
+
+        return view('admin.ingredients.form', compact(
+            'ingredient',
+            'preferenceGroups',
+            'linkedPreparations',
+            'shoppingIngredients'
+        ));
+    }
+
+    private function saveIngredient(array $data, ?Ingredient $ingredient = null): Ingredient
+    {
+        $linkId = $data['link_ingredient_id'] ?? null;
+        unset($data['link_ingredient_id']);
+
+        return DB::transaction(function () use ($data, $ingredient, $linkId) {
+            if (!$ingredient) {
+                $ingredient = Ingredient::create($data);
+            }
+
+            if ($linkId) {
+                $target = Ingredient::query()->findOrFail($linkId);
+                app(FoodPreferenceGroups::class)->link($ingredient, $target);
+            }
+
+            $ingredient = Ingredient::query()->lockForUpdate()->findOrFail($ingredient->id);
+            $ingredient->update($data);
+
+            return $ingredient;
+        });
     }
 
     private function validatedData(
@@ -117,6 +158,20 @@ class IngredientController extends Controller
         }
 
         $rules = [
+            'link_ingredient_id' => ['nullable', 'integer', Rule::exists('ingredients', 'id')],
+            'shopping_ingredient_id' => [
+                'nullable',
+                'required_with:shopping_multiplier',
+                'integer',
+                Rule::exists('ingredients', 'id'),
+            ],
+            'shopping_multiplier' => [
+                'nullable',
+                'required_with:shopping_ingredient_id',
+                'numeric',
+                'between:0.000001,100',
+                'decimal:0,6',
+            ],
             'food_code' => [
                 'required',
                 'string',
@@ -180,6 +235,45 @@ class IngredientController extends Controller
             }
         });
 
+        $validator->after(function ($validator) use ($request, $ingredient) {
+            if (
+                $validator->errors()->has('shopping_ingredient_id')
+                || $validator->errors()->has('shopping_multiplier')
+                || ! $request->filled('shopping_ingredient_id')
+            ) {
+                return;
+            }
+
+            $target = Ingredient::query()
+                ->find($request->input('shopping_ingredient_id'));
+
+            if (! $target) {
+                return;
+            }
+
+            $existingTarget = $ingredient
+                && (int) $ingredient->shopping_ingredient_id === (int) $target->id;
+
+            if (! $target->is_active && ! $existingTarget) {
+                $validator->errors()->add(
+                    'shopping_ingredient_id',
+                    'Choose an active ingredient to purchase.'
+                );
+            }
+
+            // An ingredient purchased in its own listed form needs no conversion.
+            if (
+                $ingredient
+                && (int) $target->id === (int) $ingredient->id
+                && (float) $request->input('shopping_multiplier') !== 1.0
+            ) {
+                $validator->errors()->add(
+                    'shopping_multiplier',
+                    'Use a multiplier of 1 when purchasing this same ingredient.'
+                );
+            }
+        });
+        
         return $validator->validate();
     }
 

@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Ingredient;
+use App\Services\Nutrition\FoodPreferenceGroups;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -133,121 +135,24 @@ class FoodPreferenceGroupingSeeder extends Seeder
         ];
 
         DB::transaction(function () use ($groups) {
-            // Match the preference controller's user locking.
-            DB::table('users')
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get(['id']);
-
-            $ingredients = DB::table('ingredients')
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get();
-
-            $nameMap = [];
-
+            DB::table('users')->orderBy('id')->lockForUpdate()->get(['id']);
+            $ingredients = Ingredient::query()->orderBy('id')->lockForUpdate()->get();
             foreach ($groups as $food => $names) {
-                foreach ($names as $name) {
-                    $nameMap[$name] = $food;
-                }
-            }
-
-            $keyMap = [];
-
-            foreach ($ingredients as $ingredient) {
-                if (! isset($nameMap[$ingredient->name])) {
+                // These are explicit curated names, never fuzzy matches.
+                $members = $ingredients->whereIn('name', $names);
+                $target = $members->first();
+                if (!$target) {
                     continue;
                 }
-
-                $oldName = trim((string) $ingredient->preference_food)
-                    ?: $ingredient->name;
-
-                $newName = $nameMap[$ingredient->name];
-
-                $oldKey = $this->foodKey(
-                    $ingredient->category,
-                    $oldName
-                );
-
-                $newKey = $this->foodKey(
-                    $ingredient->category,
-                    $newName
-                );
-
-                $keyMap[$oldKey] = $newKey;
-
-                DB::table('ingredients')
-                    ->where('id', $ingredient->id)
-                    ->update(['preference_food' => $newName]);
-            }
-
-            $preferences = DB::table('user_food_preferences')
-                ->lockForUpdate()
-                ->get();
-
-            $merged = [];
-            $priority = [
-                'neutral' => 0,
-                'preferred' => 1,
-                'excluded' => 2,
-            ];
-
-            foreach ($preferences as $preference) {
-                $key = $keyMap[$preference->food_key]
-                    ?? $preference->food_key;
-
-                $index = $preference->user_id.':'.$key;
-
-                if (
-                    ! isset($merged[$index])
-                    || $priority[$preference->preference]
-                        > $priority[$merged[$index]['preference']]
-                ) {
-                    $merged[$index] = [
-                        'user_id' => $preference->user_id,
-                        'food_key' => $key,
-                        'preference' => $preference->preference,
-                        'created_at' => $preference->created_at,
-                        'updated_at' => $preference->updated_at,
-                    ];
+                foreach ($members->skip(1) as $member) {
+                    app(FoodPreferenceGroups::class)->link($member, $target);
                 }
-            }
-
-            // Write merged choices before removing obsolete keys.
-            foreach (array_chunk(array_values($merged), 100) as $rows) {
-                DB::table('user_food_preferences')->upsert(
-                    $rows,
-                    ['user_id', 'food_key'],
-                    ['preference', 'updated_at']
-                );
-            }
-
-            $obsoleteKeys = array_diff(
-                array_keys($keyMap),
-                array_values($keyMap)
-            );
-
-            if ($obsoleteKeys) {
-                DB::table('user_food_preferences')
-                    ->whereIn('food_key', $obsoleteKeys)
-                    ->delete();
+                $target->refresh();
+                Ingredient::query()->where('preference_group_key', $target->preferenceFoodKey())
+                    ->update(['preference_food' => $food]);
             }
         });
 
-        $this->command->info(
-            'Food choices grouped and existing preferences preserved.'
-        );
-    }
-
-    private function foodKey(?string $category, string $name): string
-    {
-        $normalise = fn ($value) => mb_strtolower(
-            preg_replace('/\s+/u', ' ', trim((string) $value))
-        );
-
-        return hash('sha256', json_encode([
-            $normalise($category),
-            $normalise($name),
-        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        $this->command?->info('Food choices grouped and existing preferences preserved.');
     }
 }

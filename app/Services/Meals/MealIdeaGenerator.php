@@ -3,6 +3,7 @@
 namespace App\Services\Meals;
 
 use App\Models\Ingredient;
+use App\Services\Nutrition\IngredientPreparation;
 
 use App\Models\User;
 
@@ -150,11 +151,12 @@ class MealIdeaGenerator
 
             ->filter(function ($ingredient) use ($preferences, $diet) {
 
-                $choice = $preferences[self::foodKey($ingredient)]
+                $choice = $preferences[$ingredient->preferenceFoodKey()]
 
                     ?? 'neutral';
 
-                return $choice !== 'excluded'
+                return IngredientPreparation::purchaseReady((string) $ingredient->preparation_state)
+                    && $choice !== 'excluded'
 
                     && $this->allowedForDiet($ingredient, $diet);
 
@@ -196,7 +198,7 @@ class MealIdeaGenerator
 
                 'preparation_state' => $ingredient->preparation_state,
 
-                'liked' => ($preferences[self::foodKey($ingredient)]
+                'liked' => ($preferences[$ingredient->preferenceFoodKey()]
 
                     ?? 'neutral') === 'preferred',
 
@@ -600,28 +602,10 @@ BRIEF;
         ];
     }
 
+    /** Immutable snapshot identity; user choices use preferenceFoodKey(). */
     public static function foodKey(Ingredient $ingredient): string
-
     {
-
-        $normalise = fn ($value) => mb_strtolower(
-
-            preg_replace('/\s+/u', ' ', trim((string) $value))
-
-        );
-
-        $name = trim((string) $ingredient->preference_food)
-
-            ?: $ingredient->name;
-
-        return hash('sha256', json_encode([
-
-            $normalise($ingredient->category),
-
-            $normalise($name),
-
-        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
-
+        return $ingredient->snapshotFoodKey();
     }
 
     private function allowedForDiet(

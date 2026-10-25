@@ -56,7 +56,8 @@ cooking instructions as one string, with each numbered step on a separate line.
 Use actual newline characters between steps.
 
 Preparation state matters:
-- Raw ingredient entries mean quantities are weighed before cooking.
+- Raw and dry ingredient entries mean quantities are weighed before cooking.
+- Ready-to-eat entries are weighed as served; their quantities are not raw weights.
 - Cooked entries mean quantities are weighed after cooking.
 - Instructions must agree with the chosen entries.
 - Do not treat raw rice quantities as cooked rice quantities.

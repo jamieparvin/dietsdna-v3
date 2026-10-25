@@ -10,27 +10,22 @@
 
     $hasTargets = $targets['status'] === 'ready';
 
-    $calorieTarget = $hasTargets
+    $availableCarbs = $totals['estimated_available_carbohydrate_g'];
 
-        ? (float) $targets['calories_kcal']
-
-        : null;
-
-    $caloriePercent = $calorieTarget > 0
-
-        ? ($totals['energy_kcal'] / $calorieTarget) * 100
-
-        : 0;
-
-    $calorieDifference = $hasTargets
-
-        ? $calorieTarget - $totals['energy_kcal']
-
-        : null;
+    $planMetrics = [
+        ['label' => 'Calories', 'planned' => $totals['energy_kcal'], 'guide' => $hasTargets ? $targets['calories_kcal'] : null, 'unit' => 'kcal', 'decimals' => 0, 'color' => '#19815a'],
+        ['label' => 'Protein', 'planned' => $totals['protein_g'], 'guide' => $hasTargets ? $targets['protein_g'] : null, 'unit' => 'g', 'decimals' => 1, 'color' => '#6688ae'],
+        ['label' => 'Available carbs', 'planned' => $availableCarbs, 'guide' => $hasTargets ? $targets['carbohydrate_g'] : null, 'unit' => 'g', 'decimals' => 1, 'color' => '#c49a51'],
+        ['label' => 'Fat', 'planned' => $totals['fat_g'], 'guide' => $hasTargets ? $targets['fat_g'] : null, 'unit' => 'g', 'decimals' => 1, 'color' => '#a77997'],
+    ];
+    $formatPlan = fn ($value, $decimals) => \App\Services\Nutrition\SnapshotNutrition::format($value, $decimals);
 
     $filledCount = $entries->count();
 
     $slotCount = count($slots);
+
+    // Use all seven displayed days, not just the selected day.
+    $hasWeekPlan = collect($days)->sum('meal_count') > 0;
 
 @endphp
 
@@ -116,6 +111,7 @@
 
         justify-content:center;
 
+        min-height:44px;
         padding:11px 17px;
 
         border:1px solid #d5e0d8;
@@ -328,99 +324,18 @@
 
     }
 
-    .pl-summary {
-
-        display:grid;
-
-        grid-template-columns:1.35fr repeat(3,minmax(0,1fr));
-
-        gap:16px;
-
-        margin-bottom:27px;
-
-    }
-
-    .pl-stat {
-
-        min-width:0;
-
-        padding:21px;
-
-        border:1px solid #dfe7e1;
-
-        border-radius:14px;
-
-        background:#fff;
-
-    }
-
-    .pl-stat-calories {
-
-        background:#edf4ee;
-
-        border-color:#d4e2d7;
-
-    }
-
-    .pl-stat-label {
-
-        color:#6c7e70;
-
-        font-size:13px;
-
-    }
-
-    .pl-stat-value {
-
-        display:block;
-
-        margin-top:9px;
-
-        font-size:28px;
-
-        font-weight:750;
-
-        letter-spacing:-.5px;
-
-    }
-
-    .pl-stat-note {
-
-        margin-top:8px;
-
-        color:#6c7e70;
-
-        font-size:12px;
-
-        line-height:1.6;
-
-    }
-
-    .pl-progress {
-
-        height:7px;
-
-        margin-top:15px;
-
-        overflow:hidden;
-
-        border-radius:10px;
-
-        background:#d7e4d9;
-
-    }
-
-    .pl-progress span {
-
-        display:block;
-
-        height:100%;
-
-        border-radius:10px;
-
-        background:#3b7150;
-
-    }
+    .pl-summary {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:27px;}
+    .pl-stat {background:#fff;border:1px solid #dfe7e1;border-radius:15px;padding:20px;min-width:0;}
+    .pl-stat-label {display:flex;align-items:center;gap:8px;font-size:13px;font-weight:650;color:#50665a;}
+    .pl-stat-dot {height:8px;width:8px;border-radius:50%;background:var(--pl-color);flex-shrink:0;}
+    .pl-stat-value {display:block;font-size:clamp(23px,2.2vw,30px);margin:14px 0 2px;letter-spacing:-.6px;line-height:1.3;}
+    .pl-stat-value small {font-size:13px;font-weight:500;letter-spacing:0;}
+    .pl-stat-caption {font-size:11px;color:#6b7d71;}
+    .pl-stat-planned {margin:15px 0 8px;font-size:12px;color:#4f6558;}
+    .pl-stat-planned strong {color:#254937;}
+    .pl-progress {height:5px;background:#edf2ec;border-radius:10px;overflow:hidden;}
+    .pl-progress span {display:block;height:100%;background:var(--pl-color);border-radius:10px;}
+    .pl-stat-note {font-size:11px;line-height:1.5;color:#6b7d71;margin:9px 0 0;}
 
     .pl-day-heading {
 
@@ -692,11 +607,10 @@
 
         }
 
-        .pl-stat-value {
-
-            font-size:23px;
-
-        }
+        .pl-stat-value {font-size:25px;}
+        .pl-summary {gap:10px;}
+        .pl-stat-label {font-size:12px;}
+        .pl-slot-footer {flex-wrap:wrap;}
 
     }
 
@@ -721,34 +635,36 @@
         </div>
 
         <div class="pl-actions">
+            @if($hasWeekPlan)
+                <a
+                    class="pl-button pl-button-primary"
+                    href="{{ route('weekly-meals.create', [
+                        'date' => $weekStart->toDateString(),
+                        'mode' => 'replace',
+                    ]) }}"
+                >
+                    Generate replacement week
+                </a>
 
-            <a
-
-                class="pl-button"
-
-                href="{{ route('meal-ideas.index') }}"
-
-            >
-
-                Find meal ideas
-
-            </a>
-
-            <a
-
-                class="pl-button pl-button-primary"
-
-                href="{{ route('saved-meals.index', ['date' => $date]) }}"
-
-            >
-
-                Browse saved meals
-
-            </a>
-
-            @include('weekly-meals.plan-button')
-            @include('meal-plan.week-actions')
-
+                <a
+                    class="pl-button"
+                    href="{{ route('meal-plan.clear.create', [
+                        'date' => $weekStart->toDateString(),
+                    ]) }}"
+                >
+                    Clear this week
+                </a>
+            @else
+                <a
+                    class="pl-button pl-button-primary"
+                    href="{{ route('weekly-meals.create', [
+                        'date' => $weekStart->toDateString(),
+                        'mode' => 'fill',
+                    ]) }}"
+                >
+                    Generate my week
+                </a>
+            @endif
         </div>
 
     </header>
@@ -869,7 +785,9 @@
 
                     class="pl-day {{ $day['is_selected'] ? 'is-selected' : '' }}"
 
-                    @if($day['is_selected']) aria-current="date" @endif
+                    @if($day['is_selected'])
+                        aria-current="date"
+                    @endif
 
                 >
 
@@ -897,7 +815,7 @@
 
                     <span class="pl-day-detail">
 
-                        {{ number_format($day['calories']) }} kcal
+                        {{ \App\Services\Nutrition\SnapshotNutrition::format($day['calories'], 0) }} kcal
 
                     </span>
 
@@ -909,137 +827,43 @@
 
     </section>
 
-    <div class="pl-summary">
-
-        <section class="pl-stat pl-stat-calories">
-
-            <span class="pl-stat-label">Planned calories</span>
-
-            <strong class="pl-stat-value">
-
-                {{ number_format($totals['energy_kcal']) }} kcal
-
-            </strong>
-
-            @if($hasTargets)
-
-                <div class="pl-stat-note">
-
-                    Daily guide: {{ number_format($calorieTarget) }} kcal
-
+    <section class="pl-summary" aria-label="Daily guides and planned nutrition for {{ $selectedDate->format('j F Y') }}">
+        @foreach($planMetrics as $metric)
+            @php
+                $percent = $metric['guide'] !== null && $metric['guide'] > 0 && $metric['planned'] !== null
+                    ? min(100, max(0, $metric['planned'] / $metric['guide'] * 100)) : 0;
+            @endphp
+            <article class="pl-stat" style="--pl-color:{{ $metric['color'] }}">
+                <div class="pl-stat-label">
+                    <span class="pl-stat-dot" aria-hidden="true"></span>
+                    {{ $metric['label'] }}
                 </div>
-
-                <div
-
-                    class="pl-progress"
-
-                    role="img"
-
-                    aria-label="{{ number_format($caloriePercent) }} percent of daily calorie guide planned"
-
-                >
-
-                    <span
-
-                        style="width:{{ min(100, max(0, $caloriePercent)) }}%"
-
-                    ></span>
-
-                </div>
-
-                <div class="pl-stat-note">
-
-                    {{ number_format(abs($calorieDifference)) }} kcal
-
-                    {{ $calorieDifference >= 0 ? 'below' : 'above' }}
-
-                    the daily guide
-
-                </div>
-
-            @else
-
-                <div class="pl-stat-note">Total from your selected meals</div>
-
-            @endif
-
-        </section>
-
-        <section class="pl-stat">
-
-            <span class="pl-stat-label">Protein</span>
-
-            <strong class="pl-stat-value">
-
-                {{ number_format($totals['protein_g'], 1) }} g
-
-            </strong>
-
-            @if($hasTargets)
-
-                <div class="pl-stat-note">
-
-                    Daily guide:
-
-                    {{ number_format($targets['protein_g'], 1) }} g
-
-                </div>
-
-            @endif
-
-        </section>
-
-        <section class="pl-stat">
-
-            <span class="pl-stat-label">Total carbohydrate</span>
-
-            <strong class="pl-stat-value">
-
-                {{ number_format($totals['carbohydrate_g'], 1) }} g
-
-            </strong>
-
-            @if($hasTargets)
-
-                <div class="pl-stat-note">
-
-                    Daily carbohydrate allocation:
-
-                    {{ number_format($targets['carbohydrate_g'], 1) }} g.
-
-                    See calculation note below.
-
-                </div>
-
-            @endif
-
-        </section>
-
-        <section class="pl-stat">
-
-            <span class="pl-stat-label">Fat</span>
-
-            <strong class="pl-stat-value">
-
-                {{ number_format($totals['fat_g'], 1) }} g
-
-            </strong>
-
-            @if($hasTargets)
-
-                <div class="pl-stat-note">
-
-                    Daily guide:
-
-                    {{ number_format($targets['fat_g'], 1) }} g
-
-                </div>
-
-            @endif
-
-        </section>
-
-    </div>
+                <strong class="pl-stat-value">
+                    {{ $formatPlan($metric['guide'], $metric['decimals']) }} <small>{{ $metric['unit'] }}</small>
+                </strong>
+                <span class="pl-stat-caption">{{ $metric['guide'] === null ? 'Guide unavailable' : 'Daily guide' }}</span>
+                <p class="pl-stat-planned">
+                    <strong>{{ $formatPlan($metric['planned'], $metric['decimals']) }} {{ $metric['unit'] }}</strong> planned for this day
+                </p>
+                @if($metric['planned'] !== null && $metric['guide'] !== null && $metric['guide'] > 0)
+                <div class="pl-progress" aria-hidden="true"><span style="width:{{ $percent }}%"></span></div>
+                @endif
+                <p class="pl-stat-note">
+                    @if($metric['planned'] === null)
+                        Some planned nutrition is unavailable.
+                    @elseif($metric['guide'] === null)
+                        Review your profile for a guide.
+                    @elseif($filledCount === 0)
+                        Add meals to build your day.
+                    @elseif(abs($metric['planned'] - $metric['guide']) < 0.05)
+                        Matches your daily guide.
+                    @else
+                        {{ $formatPlan(abs($metric['planned'] - $metric['guide']), $metric['decimals']) }} {{ $metric['unit'] }} {{ $metric['planned'] > $metric['guide'] ? 'above' : 'below' }} guide
+                    @endif
+                </p>
+            </article>
+        @endforeach
+    </section>
 
     @if(!$hasTargets)
 
@@ -1069,7 +893,7 @@
 
             @php($entry = $entries->get($key))
 
-            <section class="pl-slot">
+            <section class="pl-slot" @if($entry) id="planned-meal-{{ $entry->id }}" @endif>
 
                 <div class="pl-slot-heading">
 
@@ -1191,9 +1015,9 @@
 
         edits do not rewrite these figures.
 
-        Ingredient total carbohydrate includes fibre and differs from
-
-        the calculator’s carbohydrate allocation.
+        Available carbohydrate in the summary is estimated as total carbohydrate
+        minus fibre, matching the daily guide. Meal cards show total carbohydrate.
+        A dash means the saved nutrition is unavailable.
 
     </p>
 

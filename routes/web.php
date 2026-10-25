@@ -12,6 +12,7 @@ use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\MealIdeaController;
 use App\Http\Controllers\NutritionProfileController;
 use App\Http\Controllers\SavedMealController;
+use App\Http\Controllers\ShoppingListController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Support\Facades\Route;
 
@@ -106,6 +107,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/meal-plan', [MealPlanController::class, 'index'])
         ->name('meal-plan.index');
+
+    Route::get('/shopping-list', [ShoppingListController::class, 'index'])
+        ->name('shopping-list.index');
+
+    Route::put('/shopping-list', [ShoppingListController::class, 'update'])
+        ->name('shopping-list.update');
 
     Route::post('/meal-plan', [MealPlanController::class, 'store'])
         ->name('meal-plan.store');

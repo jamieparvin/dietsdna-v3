@@ -3,10 +3,10 @@
 <p class="mp-muted">{{ $meal['description'] }}</p>
 
 <div class="mp-nutrition">
-    {{ number_format($meal['totals']['energy_kcal']) }} kcal
-    · {{ number_format($meal['totals']['protein_g'], 1) }} g protein
-    · {{ number_format($meal['totals']['carbohydrate_g'], 1) }} g total carbs
-    · {{ number_format($meal['totals']['fat_g'], 1) }} g fat
+    {{ \App\Services\Nutrition\SnapshotNutrition::format($meal['totals']['energy_kcal'] ?? null, 0) }} kcal
+    · {{ \App\Services\Nutrition\SnapshotNutrition::format($meal['totals']['protein_g'] ?? null, 1) }} g protein
+    · {{ \App\Services\Nutrition\SnapshotNutrition::format($meal['totals']['carbohydrate_g'] ?? null, 1) }} g total carbs
+    · {{ \App\Services\Nutrition\SnapshotNutrition::format($meal['totals']['fat_g'] ?? null, 1) }} g fat
 </div>
 
 <details>

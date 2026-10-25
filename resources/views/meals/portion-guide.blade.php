@@ -4,23 +4,20 @@
         ->filter()
         ->sortByDesc(fn ($guide) => ($guide['version'] ?? null) === \App\Services\Meals\MealPortionBalancer::VERSION)
         ->first();
-    $estimatedAvailableCarbs = collect($day['rows'])->sum(
-        fn ($row) => max(0,
-            (float) ($row['snapshot']['totals']['carbohydrate_g'] ?? 0)
-            - (float) ($row['snapshot']['totals']['fibre_g'] ?? 0)
-        )
-    );
+    $estimatedAvailableCarbs = \App\Services\Nutrition\SnapshotNutrition::aggregate(
+        collect($day['rows'])->whereNotNull('snapshot')->pluck('snapshot')
+    )['estimated_available_carbohydrate_g'];
 @endphp
 
 @if($portionGuide)
     <div class="wm-notice" style="margin-bottom:16px; line-height:1.7;">
         <strong>Daily guide</strong><br>
-        {{ number_format($portionGuide['daily_targets']['calories_kcal']) }} kcal ·
-        {{ number_format($portionGuide['daily_targets']['protein_g'], 1) }} g protein ·
-        {{ number_format($portionGuide['daily_targets']['carbohydrate_g'], 1) }} g estimated available carbs ·
-        {{ number_format($portionGuide['daily_targets']['fat_g'], 1) }} g fat.
+        {{ \App\Services\Nutrition\SnapshotNutrition::format($portionGuide['daily_targets']['calories_kcal'] ?? null, 0) }} kcal ·
+        {{ \App\Services\Nutrition\SnapshotNutrition::format($portionGuide['daily_targets']['protein_g'] ?? null, 1) }} g protein ·
+        {{ \App\Services\Nutrition\SnapshotNutrition::format($portionGuide['daily_targets']['carbohydrate_g'] ?? null, 1) }} g estimated available carbs ·
+        {{ \App\Services\Nutrition\SnapshotNutrition::format($portionGuide['daily_targets']['fat_g'] ?? null, 1) }} g fat.
         <br>
-        This day contains {{ number_format($estimatedAvailableCarbs, 1) }} g estimated available carbs.
+        This day contains {{ \App\Services\Nutrition\SnapshotNutrition::format($estimatedAvailableCarbs, 1) }} g estimated available carbs.
         Total carbs shown on the cards include fibre; the estimate subtracts fibre for comparison with the guide.
         <details>
             <summary style="cursor:pointer; min-height:44px; padding-top:10px;">How portions were checked</summary>

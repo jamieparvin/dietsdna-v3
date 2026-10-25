@@ -7,6 +7,7 @@ use App\Models\SavedMeal;
 use App\Services\Meals\MealIdeaGenerator;
 use App\Services\Meals\MealPlanSlots;
 use App\Services\Nutrition\NutritionTargetCalculator;
+use App\Services\Nutrition\SnapshotNutrition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -63,18 +64,7 @@ class MealPlanController extends Controller
             }
         }
 
-        $totals = [
-            'energy_kcal' => 0,
-            'protein_g' => 0,
-            'carbohydrate_g' => 0,
-            'fat_g' => 0,
-        ];
-
-        foreach ($entries as $entry) {
-            foreach (array_keys($totals) as $field) {
-                $totals[$field] += $entry->snapshot['totals'][$field];
-            }
-        }
+        $totals = SnapshotNutrition::aggregate($entries->pluck('snapshot'));
 
         $days = [];
 
@@ -93,9 +83,7 @@ class MealPlanController extends Controller
                 'is_today' => $day->isSameDay($today),
                 'is_selected' => $day->isSameDay($selectedDate),
                 'meal_count' => $dayEntries->count(),
-                'calories' => $dayEntries->sum(
-                    fn ($entry) => $entry->snapshot['totals']['energy_kcal']
-                ),
+                'calories' => SnapshotNutrition::aggregate($dayEntries->pluck('snapshot'))['energy_kcal'],
             ];
         }
 
