@@ -157,4 +157,25 @@ class MealIdeaPortionBalancerTest extends TestCase
         }
     }
 
+    public function test_orchestration_can_inspect_zero_passed_options_without_relaxing_checks(): void
+    {
+        $context = $this->context();
+        $raw = $this->batch($context);
+        foreach ($raw['ideas'] as &$idea) { array_pop($idea['ingredients']); }
+        unset($idea);
+        $batch = app(MealIdeaPortionBalancer::class)->balanceBatch($raw, $context, true);
+        $this->assertSame([], $batch['ideas']);
+        $this->assertSame(3, $batch['rejected_count']);
+        $this->assertFalse(app(MealIdeaPortionBalancer::class)->isCurrentBatch($batch));
+    }
+
+    public function test_allow_empty_does_not_hide_signature_changes(): void
+    {
+        $context = $this->context();
+        $raw = $this->batch($context);
+        $raw['signature'] = 'changed';
+        $this->expectException(ValidationException::class);
+        app(MealIdeaPortionBalancer::class)->balanceBatch($raw, $context, true);
+    }
+
 }

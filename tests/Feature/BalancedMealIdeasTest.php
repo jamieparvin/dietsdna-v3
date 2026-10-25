@@ -23,6 +23,8 @@ class BalancedMealIdeasTest extends TestCase
     private int $revision = 1;
     private bool $allUnfit = false;
     private bool $partial = false;
+    private bool $replaceSuccessfully = false;
+    private bool $replacementFails = false;
 
     protected function beforeRefreshingDatabase(): void
     {
@@ -50,6 +52,12 @@ class BalancedMealIdeasTest extends TestCase
             $mock->shouldReceive('context')->andReturnUsing(fn ($user, $type = 'lunch') => $this->context($user, $type));
             $mock->shouldReceive('generate')->andReturnUsing(function ($user, $type) {
                 $this->calls++;
+                if ($this->calls === 2 && $this->replacementFails) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['generation' => 'Provider unavailable']);
+                }
+                if ($this->calls === 2 && $this->replaceSuccessfully) {
+                    $this->partial = false;
+                }
                 return $this->raw($this->context($user, $type));
             });
         });
@@ -209,26 +217,58 @@ class BalancedMealIdeasTest extends TestCase
         $this->assertDatabaseCount('saved_meals', 0);
     }
 
-    public function test_partial_results_are_explained_without_a_second_ai_call(): void
+    public function test_partial_results_keep_passed_options_after_one_replacement_attempt(): void
     {
         $this->partial = true;
         $batch = $this->batch();
         $this->assertCount(2, $batch['ideas']);
         $this->assertSame('Meal alternative 2', $batch['ideas'][0]['name']);
-        $this->actingAs($this->owner)->get(route('meal-ideas.index', ['meal_type' => 'breakfast']))->assertOk()->assertSee('Showing 2 of 3 generated ideas.');
-        $this->assertSame(1, $this->calls);
+        $this->actingAs($this->owner)->get(route('meal-ideas.index', ['meal_type' => 'breakfast']))->assertOk()->assertSee('Showing 2 of 3 requested ideas.');
+        $this->assertSame(2, $this->calls);
         $this->actingAs($this->owner)->post(route('saved-meals.store'), $this->payload($batch, 2))->assertSessionHasErrors('meal');
         $this->assertDatabaseCount('saved_meals', 0);
     }
 
-    public function test_failed_new_batch_retains_the_previous_valid_batch_and_does_not_retry(): void
+    public function test_two_unsuitable_batches_retain_the_previous_valid_batch(): void
     {
         $old = $this->batch();
         $this->allUnfit = true;
         $this->actingAs($this->owner)->post(route('meal-ideas.store'), ['meal_type' => 'breakfast'])->assertSessionHasErrors('generation');
         $this->assertSame($old, session('meal_ideas.user_'.$this->owner->id));
-        $this->assertSame(2, $this->calls);
+        $this->assertSame(3, $this->calls);
         $this->assertDatabaseCount('saved_meals', 0);
+    }
+
+    public function test_replacements_fill_missing_ideas_and_all_three_remain_savable(): void
+    {
+        $this->partial = true;
+        $this->replaceSuccessfully = true;
+        $batch = $this->batch();
+        $this->assertCount(3, $batch['ideas']);
+        $this->assertSame(2, $this->calls);
+        $this->assertSame(['Meal alternative 2', 'Meal alternative 3', 'Meal alternative 1'], array_column($batch['ideas'], 'name'));
+        foreach ([0, 1, 2] as $index) {
+            $this->post(route('saved-meals.store'), $this->payload($batch, $index))->assertSessionHasNoErrors();
+        }
+        $this->assertDatabaseCount('saved_meals', 3);
+        $this->assertDatabaseCount('meal_plan_entries', 0);
+        $this->get(route('meal-ideas.index', ['meal_type' => 'breakfast']))->assertOk()
+            ->assertViewHas('savedIdeaIndexes', [0, 1, 2]);
+        $this->assertSame(2, $this->calls);
+    }
+
+    public function test_failed_extra_request_still_publishes_checked_first_pass_options(): void
+    {
+        $this->partial = true;
+        $this->replacementFails = true;
+        $batch = $this->batch();
+        $this->assertCount(2, $batch['ideas']);
+        $this->assertTrue($batch['replacement_unavailable']);
+        $this->get(route('meal-ideas.index', ['meal_type' => 'breakfast']))->assertOk()
+            ->assertSee('The extra request did not complete.');
+        $this->post(route('saved-meals.store'), $this->payload($batch))->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('saved_meals', 1);
+        $this->assertSame(2, $this->calls);
     }
 
     public function test_snacks_use_one_snack_budget_and_zero_snacks_are_named_correctly(): void
@@ -274,6 +314,43 @@ class BalancedMealIdeasTest extends TestCase
         $this->app->forgetInstance(MealIdeaGenerator::class);
         $batch = app(MealIdeaGenerator::class)->generate($this->owner, 'breakfast');
         $this->assertCount(3, $batch['ideas']);
+    }
+
+    public function test_real_generator_requests_only_missing_count_and_supplies_portion_caps(): void
+    {
+        $this->owner->nutritionProfile()->update([
+            'goal' => 'build_muscle', 'height_cm' => 180, 'weight_kg' => 80,
+            'date_of_birth' => '1996-06-01', 'activity_level' => 'moderate',
+            'calculation_sex' => 'male', 'planning_context' => 'general_adult',
+            'resistance_training' => true, 'dietary_preference' => 'no_preference',
+            'cooking_minutes' => 30, 'macro_mode' => 'goal', 'allergies' => null, 'foods_to_avoid' => null,
+        ]);
+        \Illuminate\Support\Facades\DB::table('nutrition_calculator_settings')->updateOrInsert(['id' => 1], [
+            'parameters' => json_encode(\App\Services\Nutrition\NutritionCalculatorSettings::defaults(), JSON_THROW_ON_ERROR),
+            'revision' => 1, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->mock(\App\Services\Recipes\RecipeGenerator::class, function ($mock) {
+            $mock->shouldReceive('generate')->once()->withArgs(function ($catalog, $count, $brief) {
+                $this->assertSame(2, $count);
+                $this->assertStringContainsString('include a suitable fat source', $brief);
+                $this->assertStringContainsString('do not automatically add more', $brief);
+                $this->assertStringContainsString("excluded by the user's choices", $brief);
+                $this->assertStringContainsString('actually', $brief);
+                $this->assertStringContainsString('previous_names', $brief);
+                $this->assertStringContainsString('Old rejected option', $brief);
+                $this->assertStringContainsString('max_quantity_g', $brief);
+                $this->assertStringContainsString('protein_g_at_max_quantity', $brief);
+                $this->assertStringContainsString('at most 500 g', $brief);
+                return true;
+            })->andReturn(array_map(fn ($n) => [
+                'name' => 'Catalog option '.$n, 'description' => 'Test catalog option.',
+                'instructions' => 'Prepare the listed ingredients.', 'servings' => 1,
+                'ingredients' => $this->ingredients->map(fn ($food, $i) => ['ingredient_id' => $food->id, 'quantity_g' => [30,60,10][$i]])->all(),
+            ], [1,2]));
+        });
+        $this->app->forgetInstance(MealIdeaGenerator::class);
+        $batch = app(MealIdeaGenerator::class)->generate($this->owner, 'breakfast', 2, ['Old rejected option']);
+        $this->assertCount(2, $batch['ideas']);
     }
 
 }

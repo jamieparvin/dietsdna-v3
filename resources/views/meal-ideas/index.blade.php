@@ -356,9 +356,9 @@
 
                 Foods marked Dislike are excluded across their linked preparations.
 
-                Generation uses your configured AI account and may take around a minute.
+                Generation uses your configured AI account and may take up to two minutes.
 
-                Up to three alternatives are checked. Only options that fit your meal guide within the portion limits are shown. Refreshing this page does not generate again.
+                We aim to show three suitable alternatives. If some fail the portion check, one extra AI request may be made for replacements. Only checked options are shown. Refreshing this page does not generate again.
 
             </p>
 
@@ -371,11 +371,17 @@
         </section>
 
         @if($batch)
-            @if(($batch['rejected_count'] ?? 0) > 0)
+            @if(count($batch['ideas']) < 3 || ($batch['generation_attempts'] ?? 1) > 1)
                 <div class="mi-notice" role="status">
-                    Showing {{ count($batch['ideas']) }} of {{ $batch['requested_count'] }} generated ideas.
-                    The other options could not meet this meal guide within the portion limits.
-                    No automatic retry was made.
+                    Showing {{ count($batch['ideas']) }} of 3 requested ideas.
+                    @if(($batch['generation_attempts'] ?? 1) > 1)
+                        One extra request was made for replacement options.
+                    @endif
+                    @if(($batch['replacement_unavailable'] ?? false))
+                        The extra request did not complete. Your checked options are kept below.
+                    @elseif(count($batch['ideas']) < 3)
+                        The remaining candidates did not pass the portion checks or repeated an option.
+                    @endif
                 </div>
             @endif
 

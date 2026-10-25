@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SavedMeal;
 use App\Services\Meals\MealIdeaGenerator;
+use App\Services\Meals\MealIdeaBatchGenerator;
 use App\Services\Meals\MealIdeaPortionBalancer;
 use App\Services\Meals\PlannedMealSnapshot;
 use Illuminate\Http\Request;
@@ -55,22 +56,16 @@ class MealIdeaController extends Controller
         return view('meal-ideas.index', compact('context', 'blocked', 'batch', 'savedIdeaIndexes', 'portionNotice'));
     }
 
-    public function store(Request $request, MealIdeaGenerator $generator, MealIdeaPortionBalancer $portions)
+    public function store(Request $request, MealIdeaBatchGenerator $batches)
     {
         $data = $request->validate(['meal_type' => ['required', Rule::in(['breakfast', 'lunch', 'dinner', 'snack'])]]);
-        $lock = Cache::lock('meal-ideas:user:'.$request->user()->id, 120);
+        $lock = Cache::lock('meal-ideas:user:'.$request->user()->id, 240);
         if (! $lock->get()) {
             throw ValidationException::withMessages(['generation' => 'Meal ideas are already being generated. Please wait.']);
         }
         try {
-            set_time_limit(90);
-            $batch = $generator->generate($request->user(), $data['meal_type']);
-            $context = $generator->context($request->user(), $data['meal_type']);
-            $batch = $portions->balanceBatch($batch, $context);
-            $fresh = $generator->context($request->user(), $data['meal_type']);
-            if ($fresh['signature'] !== $context['signature'] || $fresh['meal_type'] !== $context['meal_type']) {
-                throw ValidationException::withMessages(['generation' => 'Your profile, preferences or ingredients changed. Generate fresh ideas.']);
-            }
+            set_time_limit(180);
+            $batch = $batches->generate($request->user(), $data['meal_type']);
             $request->session()->put($this->sessionKey($request), $batch);
             return redirect()->route('meal-ideas.index', ['meal_type' => $data['meal_type']])
                 ->with('status', 'Your portion-checked meal ideas are ready.');

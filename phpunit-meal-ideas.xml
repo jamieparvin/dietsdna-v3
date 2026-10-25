@@ -6,6 +6,7 @@
         <testsuite name="Balanced meal ideas">
             <file>tests/Unit/MealIdeaPortionBalancerTest.php</file>
             <file>tests/Feature/BalancedMealIdeasTest.php</file>
+            <file>tests/Unit/MealIdeaBatchGeneratorTest.php</file>
         </testsuite>
     </testsuites>
     <php>

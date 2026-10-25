@@ -32,7 +32,7 @@ class MealIdeaPortionBalancer
     }
 
     /** Each alternative is balanced separately; alternatives never share a budget. */
-    public function balanceBatch(array $batch, array $context): array
+    public function balanceBatch(array $batch, array $context, bool $allowEmpty = false): array
     {
         if (($batch['signature'] ?? null) !== $context['signature']
             || ($batch['meal_type'] ?? null) !== $context['meal_type']) {
@@ -64,10 +64,10 @@ class MealIdeaPortionBalancer
                 $ideas[] = $snapshot;
             } catch (ValidationException $exception) {
                 // Omit an unsuitable alternative rather than save a short portion,
-                // invent an ingredient, relax the guides or make a paid retry.
+                // invent an ingredient or relax the guides. A caller may request replacements.
             }
         }
-        if (! $ideas) {
+        if (! $ideas && ! $allowEmpty) {
             $this->fail('None of these ideas could meet this meal’s calorie and macro guide within the portion limits. No new meals were saved and no automatic retry was made. Try different meal ideas.');
         }
         $batch['ideas'] = array_values($ideas);
