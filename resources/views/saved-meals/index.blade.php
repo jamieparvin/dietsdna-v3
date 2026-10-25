@@ -79,10 +79,28 @@
     }
 
     .sm-card-actions {
+        display:flex;
+        align-items:center;
+        flex-wrap:wrap;
+        gap:10px;
         margin-top:22px;
         padding-top:18px;
         border-top:1px solid #e9eee9;
     }
+
+    .sm-delete {
+        min-height:44px;
+        padding:10px 16px;
+        border:1px solid #e4c7c1;
+        border-radius:8px;
+        background:#fff8f6;
+        color:#853b31;
+        font:inherit;
+        cursor:pointer;
+    }
+    .sm-delete:focus-visible { outline:3px solid #b98e84; outline-offset:3px; }
+    .sm-delete:disabled { opacity:.6; cursor:wait; }
+    .sm-delete-context { line-height:1.7; }
 
     .sm-empty {
         padding:22px;
@@ -299,20 +317,22 @@
                                 'meal' => $savedMeal->snapshot,
                             ])
 
-                            @if($slots)
-                                <div class="sm-card-actions">
-                                    <button
-                                        type="button"
-                                        class="mp-button"
-                                        data-open-plan
+                            <div class="sm-card-actions">
+                                @if($slots)
+                                    <button type="button" class="mp-button" data-open-plan
                                         data-meal-id="{{ $savedMeal->id }}"
                                         data-meal-name="{{ $savedMeal->snapshot['name'] }}"
-                                        data-meal-type="{{ $savedMeal->meal_type }}"
-                                    >
+                                        data-meal-type="{{ $savedMeal->meal_type }}">
                                         Add to meal plan
                                     </button>
-                                </div>
-                            @endif
+                                @endif
+                                <button type="button" class="sm-delete" data-open-delete
+                                    data-meal-name="{{ $savedMeal->snapshot['name'] }}"
+                                    data-delete-url="{{ route('saved-meals.destroy', $savedMeal->id) }}"
+                                    aria-label="Delete saved meal: {{ $savedMeal->snapshot['name'] }}">
+                                    Delete meal
+                                </button>
+                            </div>
                         </article>
                     @endforeach
                 </div>
@@ -483,4 +503,55 @@
     })();
     </script>
 @endif
+<dialog id="delete-saved-meal-dialog" class="sm-dialog" aria-labelledby="delete-saved-meal-title">
+    <div class="sm-dialog-header">
+        <h2 id="delete-saved-meal-title">Delete saved meal?</h2>
+        <button type="button" class="sm-close" data-close-delete aria-label="Close delete confirmation">×</button>
+    </div>
+    <div class="sm-dialog-body">
+        <p id="delete-saved-meal-name" class="sm-selected-meal"></p>
+        <p class="sm-delete-context">This removes the option from Saved meals. Meals already in your meal plan will keep their portions and nutrition.</p>
+        <form id="delete-saved-meal-form" method="POST" action="{{ route('saved-meals.index') }}">
+            @csrf
+            @method('DELETE')
+            <input type="hidden" name="delete_confirmed" value="1">
+            <input type="hidden" name="date" value="{{ $date }}">
+            @foreach(['breakfast', 'lunch', 'dinner', 'snack'] as $section)
+                <input type="hidden" name="{{ $section }}_page" value="{{ $mealGroups[$section]['meals']->currentPage() }}">
+            @endforeach
+            <div class="sm-dialog-actions">
+                <button type="button" class="sm-cancel" data-close-delete autofocus>Keep meal</button>
+                <button type="submit" class="sm-delete" id="confirm-delete-saved-meal">Delete meal</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+<script>
+(() => {
+    const dialog = document.getElementById('delete-saved-meal-dialog');
+    const form = document.getElementById('delete-saved-meal-form');
+    const name = document.getElementById('delete-saved-meal-name');
+    const confirmButton = document.getElementById('confirm-delete-saved-meal');
+    document.querySelectorAll('[data-open-delete]').forEach(button => {
+        button.addEventListener('click', () => {
+            form.action = button.dataset.deleteUrl;
+            name.textContent = button.dataset.mealName;
+            confirmButton.disabled = false;
+            confirmButton.textContent = 'Delete meal';
+            if (typeof dialog.showModal === 'function') {
+                dialog.showModal();
+            } else if (window.confirm('Delete this saved meal? Meals already in your plan will be kept.')) {
+                form.requestSubmit();
+            }
+        });
+    });
+    dialog.querySelectorAll('[data-close-delete]').forEach(button => {
+        button.addEventListener('click', () => dialog.close());
+    });
+    form.addEventListener('submit', () => {
+        confirmButton.disabled = true;
+        confirmButton.textContent = 'Deleting…';
+    });
+})();
+</script>
 @endsection

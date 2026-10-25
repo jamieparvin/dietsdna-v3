@@ -116,4 +116,5 @@ Route::middleware('auth')->group(function () {
     require __DIR__.'/meal-planning.php';
     require __DIR__.'/macro-preferences.php';
     require __DIR__.'/week-actions.php';
+    require __DIR__.'/saved-meal-actions.php';
 });

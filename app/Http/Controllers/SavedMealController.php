@@ -69,6 +69,45 @@ class SavedMealController extends Controller
         ])->with('status', 'Meal saved. You can save another idea below.');
     }
 
+    public function destroy(Request $request, int $savedMeal)
+    {
+        $pages = ['breakfast_page', 'lunch_page', 'dinner_page', 'snack_page'];
+        $rules = ['delete_confirmed' => ['required', 'accepted'], 'date' => ['nullable', 'date_format:Y-m-d']];
+        foreach ($pages as $page) {
+            $rules[$page] = ['nullable', 'integer', 'between:1,100000'];
+        }
+        $data = $request->validate($rules);
+        [$type, $remaining] = DB::transaction(function () use ($request, $savedMeal) {
+            $userId = $request->user()->id;
+            DB::table('users')->where('id', $userId)->lockForUpdate()->first();
+            $meal = SavedMeal::query()->where('user_id', $userId)->lockForUpdate()->findOrFail($savedMeal);
+            $type = $meal->meal_type;
+            // ON DELETE SET NULL keeps dated entries and their immutable snapshots.
+            $meal->delete();
+            $remaining = SavedMeal::query()->where('user_id', $userId)->where('meal_type', $type)->count();
+            return [$type, $remaining];
+        });
+        $query = [];
+        if (! empty($data['date'])) {
+            $query['date'] = $data['date'];
+        }
+        foreach ($pages as $page) {
+            if (isset($data[$page])) {
+                $query[$page] = (int) $data[$page];
+            }
+        }
+        $labels = ['breakfast', 'lunch', 'dinner', 'snack'];
+        if (in_array($type, $labels, true)) {
+            $page = $type.'_page';
+            $query[$page] = min($query[$page] ?? 1, max(1, (int) ceil($remaining / 6)));
+        }
+        $url = route('saved-meals.index', $query);
+        if (in_array($type, $labels, true)) {
+            $url .= '#'.$type;
+        }
+        return redirect()->to($url)->with('status', 'Saved meal deleted. Meals already in your plan have been kept.');
+    }
+
     private function fail(string $message): never
     {
         throw ValidationException::withMessages(['meal' => $message]);
