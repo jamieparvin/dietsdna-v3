@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\RecipeController;
 use App\Http\Controllers\Admin\RecipeGenerationController;
 use App\Http\Controllers\Admin\NutritionCalculatorSettingsController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FoodPreferenceController;
 use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\MealIdeaController;
@@ -20,7 +21,7 @@ Route::get('/', function () {
         : redirect()->route('login');
 })->name('home');
 
-Route::view('/dashboard', 'dashboard')
+Route::get('/dashboard', DashboardController::class)
     ->middleware('auth')
     ->name('dashboard');
 
