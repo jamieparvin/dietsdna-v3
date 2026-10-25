@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable([
     'user_id', 'start_date', 'status', 'source_signature', 'meal_count',
     'slots', 'generated', 'proposals', 'completed_types', 'error', 'confirmed_at',
+    'mode', 'baseline_fingerprint',
 ])]
 class WeeklyMealDraft extends Model
 {

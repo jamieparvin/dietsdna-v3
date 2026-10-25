@@ -17,6 +17,7 @@ class WeeklyMealPlanner
         private readonly PlannedMealSnapshot $snapshots,
         private readonly WeeklyMealSchedule $schedule,
         private readonly MealPortionBalancer $balancer,
+        private readonly MealPlanWeekState $weeks,
     ) {
     }
 
@@ -58,12 +59,7 @@ class WeeklyMealPlanner
 
     public function occupied(WeeklyMealDraft $draft): array
     {
-        return MealPlanEntry::query()
-            ->where('user_id', $draft->user_id)
-            ->whereBetween('plan_date', [
-                $draft->start_date->toDateString(),
-                $draft->start_date->addDays(6)->toDateString(),
-            ])
+        return $this->weeks->query($draft->user_id, $draft->start_date)
             ->get()
             ->map(fn ($entry) => $entry->plan_date->format('Y-m-d').'|'.$entry->slot)
             ->all();
@@ -73,6 +69,7 @@ class WeeklyMealPlanner
     {
         $user = User::query()->findOrFail($draft->user_id);
         $this->assertCurrent($draft, $user);
+        $this->assertReplacementBaseline($draft, $this->planState($draft));
         $types = array_values(array_unique(array_map(
             fn ($slot) => WeeklyMealSchedule::typeForSlot($slot),
             array_keys($draft->slots)
@@ -85,6 +82,7 @@ class WeeklyMealPlanner
             }
 
             $this->assertCurrent($draft, $user);
+            $this->assertReplacementBaseline($draft, $this->planState($draft));
             $batch = $this->generator->generate($user, $type);
             $source = $this->assertCurrent($draft, $user);
 
@@ -169,6 +167,8 @@ class WeeklyMealPlanner
     {
         $this->assertCurrent($draft, $user);
         $state = $this->planState($draft);
+        $this->assertReplacementBaseline($draft, $state);
+        $fixed = $draft->mode === 'replace' ? [] : $state['fixed'];
         $source = $this->assertCurrent($draft, $user);
         $targets = array_intersect_key($source['context']['targets'], array_flip([
             'calories_kcal', 'protein_g', 'carbohydrate_g', 'fat_g',
@@ -178,7 +178,7 @@ class WeeklyMealPlanner
         )->all();
         $proposals = $this->schedule->buildBalanced(
             $draft->start_date->toDateString(), $draft->slots, $pools,
-            $state['fixed'], $catalog, $targets, $this->balancer
+            $fixed, $catalog, $targets, $this->balancer
         );
         foreach ($proposals as &$proposal) {
             $proposal['plan_fingerprint'] = $state['fingerprint'];
@@ -205,7 +205,7 @@ class WeeklyMealPlanner
                 ->findOrFail($draftId);
 
             if ($draft->status === 'confirmed') {
-                return ['added' => 0, 'skipped' => 0, 'already_confirmed' => true];
+                return ['added' => 0, 'skipped' => 0, 'removed' => 0, 'already_confirmed' => true];
             }
 
             if ($draft->status !== 'ready') {
@@ -214,17 +214,33 @@ class WeeklyMealPlanner
 
             $source = $this->assertCurrent($draft, $user);
             $state = $this->planState($draft);
-            foreach ($draft->proposals ?? [] as $proposal) {
+            $this->assertReplacementBaseline($draft, $state);
+            $replacing = $draft->mode === 'replace';
+            $proposals = $draft->proposals ?? [];
+            if ($replacing) {
+                $this->assertCompleteReplacement($draft, $proposals, $source['slots']);
+            }
+            foreach ($proposals as $proposal) {
                 if (($proposal['plan_fingerprint'] ?? null) !== $state['fingerprint']) {
                     $this->fail('Your meal plan changed after this preview was prepared. Generate a new preview to balance it around your current meals. Nothing was saved.');
                 }
             }
-            $this->balancer->assertFits($draft->proposals ?? [], $state['fixed'], $source['context']['targets']);
+            $this->balancer->assertFits($proposals, $replacing ? [] : $state['fixed'], $source['context']['targets']);
+            // Validate EVERY meal before deleting any existing entry.
+            foreach ($proposals as $proposal) {
+                if (! $this->snapshots->eligible($proposal['snapshot'], $source['context']['ingredients'])) {
+                    $this->fail('A proposed meal is no longer eligible. Generate a new preview.');
+                }
+            }
+            $removed = 0;
+            if ($replacing) {
+                $removed = $this->weeks->query($user->id, $draft->start_date)->delete();
+            }
             $added = 0;
             $skipped = 0;
 
-            foreach ($draft->proposals ?? [] as $proposal) {
-                // Existing meals and meals added while previewing are preserved.
+            foreach ($proposals as $proposal) {
+                // Fill mode preserves occupied slots; replacement has atomically cleared this week.
                 $occupied = MealPlanEntry::query()
                     ->where('user_id', $user->id)
                     ->whereDate('plan_date', $proposal['date'])
@@ -232,12 +248,11 @@ class WeeklyMealPlanner
                     ->exists();
 
                 if ($occupied) {
+                    if ($replacing) {
+                        $this->fail('A replacement slot could not be written. The transaction was rolled back.');
+                    }
                     $skipped++;
                     continue;
-                }
-
-                if (! $this->snapshots->eligible($proposal['snapshot'], $source['context']['ingredients'])) {
-                    $this->fail('A proposed meal is no longer eligible. Generate a new preview.');
                 }
 
                 $saved = SavedMeal::query()->firstOrCreate([
@@ -258,32 +273,57 @@ class WeeklyMealPlanner
                 $added++;
             }
 
+            if ($replacing) {
+                WeeklyMealDraft::query()->where('user_id', $user->id)->where('id', '!=', $draft->id)
+                    ->whereDate('start_date', $draft->start_date->toDateString())
+                    ->whereIn('status', ['queued', 'generating', 'ready'])
+                    ->update(['status' => 'cancelled', 'updated_at' => now()]);
+            }
             $draft->update(['status' => 'confirmed', 'confirmed_at' => now()]);
 
-            return compact('added', 'skipped') + ['already_confirmed' => false];
+            return compact('added', 'skipped', 'removed') + ['already_confirmed' => false];
         });
     }
 
     private function planState(WeeklyMealDraft $draft): array
     {
-        $entries = MealPlanEntry::query()
-            ->where('user_id', $draft->user_id)
-            ->whereBetween('plan_date', [
-                $draft->start_date->toDateString(),
-                $draft->start_date->addDays(6)->toDateString(),
-            ])->orderBy('id')->get();
-        $fixed = $entries->map(fn ($entry) => [
-            'date' => $entry->plan_date->format('Y-m-d'),
-            'slot' => $entry->slot,
-            'snapshot' => $entry->snapshot,
-        ])->all();
-        $fingerprint = hash('sha256', json_encode($entries->map(fn ($entry) => [
-            'id' => $entry->id, 'slot' => $entry->slot,
-            'date' => $entry->plan_date->format('Y-m-d'),
-            'saved_meal_id' => $entry->saved_meal_id,
-            'snapshot' => $entry->snapshot,
-        ])->all(), JSON_THROW_ON_ERROR));
-        return compact('fixed', 'fingerprint');
+        return $this->weeks->capture($draft->user_id, $draft->start_date);
+    }
+
+    private function assertReplacementBaseline(WeeklyMealDraft $draft, array $state): void
+    {
+        $mode = $draft->mode ?? 'fill';
+        if (! in_array($mode, ['fill', 'replace'], true)) {
+            $this->fail('Choose a valid weekly planning mode.');
+        }
+        if ($mode === 'replace' && (! is_string($draft->baseline_fingerprint)
+            || ! hash_equals($state['fingerprint'], $draft->baseline_fingerprint))) {
+            $this->fail('Your meal plan changed after this replacement was requested. Generate a new replacement preview. Your current meals were not changed.');
+        }
+    }
+
+    private function assertCompleteReplacement(WeeklyMealDraft $draft, array $proposals, array $currentSlots): void
+    {
+        if (! $currentSlots || $draft->slots != $currentSlots || count($proposals) !== 7 * count($currentSlots)) {
+            $this->fail('The replacement does not contain every slot for the week. Nothing was replaced.');
+        }
+        $expected = [];
+        foreach (range(0, 6) as $day) {
+            $date = $draft->start_date->addDays($day)->toDateString();
+            foreach ($currentSlots as $slot => $unused) {
+                $expected[$date.'|'.$slot] = WeeklyMealSchedule::typeForSlot($slot);
+            }
+        }
+        foreach ($proposals as $proposal) {
+            $key = ($proposal['date'] ?? '').'|'.($proposal['slot'] ?? '');
+            if (! isset($expected[$key]) || ($proposal['meal_type'] ?? null) !== $expected[$key]) {
+                $this->fail('The replacement contains an invalid or repeated meal slot. Nothing was replaced.');
+            }
+            unset($expected[$key]);
+        }
+        if ($expected) {
+            $this->fail('The replacement is missing meal slots. Nothing was replaced.');
+        }
     }
 
     private function fail(string $message): never

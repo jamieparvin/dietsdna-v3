@@ -6,6 +6,8 @@
 @include('weekly-meals.styles')
 
 <style>
+    .wp-preview button:disabled { opacity:0.55; cursor:not-allowed; }
+
     .wp-preview {
         width: 100%;
         min-width: 0;
@@ -305,7 +307,7 @@
 
 <div class="wm-page wp-preview">
     <header class="wp-heading">
-        <h1>Your weekly preview</h1>
+        <h1>{{ $replacing ? 'Your replacement preview' : 'Your weekly preview' }}</h1>
 
         <p class="wm-muted">
             {{ $draft->start_date->format('j M') }}
@@ -393,23 +395,31 @@
 
     @elseif($draft->status === 'cancelled')
         <div class="wm-notice">
-            This preview was cancelled.
-            Your meal plan was not changed.
+            This preview was cancelled. No meals were applied from it.
         </div>
 
     @elseif($draft->status === 'confirmed')
         <div class="wm-notice">
-            This week has been added. Open your meal plan
-            to view your meals and swap any you want to change.
+            {{ $replacing ? 'This replacement has been applied.' : 'This week has been added.' }}
+            Open your meal plan to view your meals and swap any you want to change.
         </div>
 
     @elseif($draft->status === 'ready')
         <div class="wm-notice">
-            Review each day before adding the week.
-            Meals marked “Keep existing” stay in your plan.
-            New suggestions fill empty slots and are also saved
-            as reusable meal options.
+            @if($replacing)
+                Review this complete replacement for {{ $draft->start_date->format('j M') }} – {{ $draft->start_date->addDays(6)->format('j M Y') }}.
+                Your current week stays in place until you confirm below. Confirmation replaces all dated meal entries for this week, including slots from an earlier meal pattern. Saved meals remain available.
+            @else
+                Review each day before adding the week. Meals marked “Keep existing” stay in your plan.
+                New suggestions fill empty slots and are also saved as reusable meal options.
+            @endif
         </div>
+        @if($planChanged)
+            <div class="wm-notice wm-error" role="alert">
+                Your current plan changed after this preview was prepared. Generate a new preview before confirming.
+                <a href="{{ route('weekly-meals.create', ['date' => $draft->start_date->toDateString(), 'mode' => $replacing ? 'replace' : 'fill']) }}">Create a fresh preview</a>
+            </div>
+        @endif
 
         <p class="wm-muted">
             Totals reflect the portions shown. They may differ
@@ -565,9 +575,12 @@
 
         <section class="wp-confirm">
             <p class="wm-muted">
-                Add the full week when you’re ready.
-                Your existing meals will stay in place.
-                You can swap meals afterwards from your meal plan.
+                @if($replacing)
+                    Replace only this week once you are happy with the new meals. Your Saved meals stay available for swaps.
+                @else
+                    Add the full week when you’re ready. Your existing meals will stay in place.
+                    You can swap meals afterwards from your meal plan.
+                @endif
             </p>
 
             <div class="wp-confirm-actions">
@@ -577,13 +590,20 @@
                     id="weekly-confirm-form"
                 >
                     @csrf
-
+                    @if($replacing)
+                        <label style="display:flex;align-items:flex-start;gap:10px;line-height:1.6;margin-bottom:16px;cursor:pointer">
+                            <input type="checkbox" name="replace_confirmed" value="1" required style="width:20px!important;height:20px;flex:none;margin-top:3px">
+                            <span>Replace my current plan for {{ $draft->start_date->format('j M') }} – {{ $draft->start_date->addDays(6)->format('j M Y') }} with these meals.</span>
+                        </label>
+                    @endif
                     <button
                         type="submit"
                         class="wm-button"
                         id="weekly-confirm-button"
+                        data-busy="{{ $replacing ? 'Replacing week…' : 'Adding meals…' }}"
+                        @if($planChanged) disabled @endif
                     >
-                        Add this week to my plan
+                        {{ $replacing ? 'Replace this week' : 'Add this week to my plan' }}
                     </button>
                 </form>
 
@@ -597,7 +617,7 @@
                         type="submit"
                         class="wm-button wm-secondary"
                     >
-                        Discard preview
+                        {{ $replacing ? 'Keep current plan' : 'Discard preview' }}
                     </button>
                 </form>
             </div>
@@ -689,7 +709,7 @@
             const button = document.getElementById('weekly-confirm-button');
 
             button.disabled = true;
-            button.textContent = 'Adding meals…';
+            button.textContent = button.dataset.busy || 'Adding meals…';
         });
     })();
 </script>

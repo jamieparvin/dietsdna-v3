@@ -9,6 +9,7 @@
             <file>tests/Unit/MealPortionBalancerTest.php</file>
             <file>tests/Unit/MealDistributionTest.php</file>
             <file>tests/Feature/WeeklyMealPlanningTest.php</file>
+            <file>tests/Feature/WeekReplacementTest.php</file>
         </testsuite>
     </testsuites>
     <php>
