@@ -9,6 +9,46 @@
     $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
     $ready = ($targets['status'] ?? null) === 'ready';
     $format = fn ($value, $decimals = 1) => $value === null ? '—' : number_format($value, $decimals);
+
+    $dashboardMetrics = array_values(array_filter(
+        $metrics,
+        fn ($metric) => $metric['key'] !== 'fibre_g'
+    ));
+    $showNextWeek = request()->query('dashboard_week') === 'next';
+    $displayWeekStart = \Carbon\CarbonImmutable::instance($weekStart);
+    $displayWeekDays = $weekDays;
+    $displayWeekPlannedDays = $weekPlannedDays;
+
+    if ($showNextWeek) {
+        $displayWeekStart = $displayWeekStart->addWeek();
+        $nextWeekCounts = \App\Models\MealPlanEntry::query()
+            ->where('user_id', auth()->id())
+            ->where('plan_date', '>=', $displayWeekStart->toDateString())
+            ->where('plan_date', '<', $displayWeekStart->addWeek()->toDateString())
+            ->get(['plan_date'])
+            ->countBy(fn ($entry) => $entry->plan_date->format('Y-m-d'));
+
+        $displayWeekDays = [];
+        for ($offset = 0; $offset < 7; $offset++) {
+            $dayDate = $displayWeekStart->addDays($offset);
+            $displayWeekDays[] = [
+                'date' => $dayDate,
+                'count' => (int) $nextWeekCounts->get($dayDate->toDateString(), 0),
+                'today' => $dayDate->toDateString() === $date,
+            ];
+        }
+        $displayWeekPlannedDays = collect($displayWeekDays)->where('count', '>', 0)->count();
+    }
+
+    $dailyPatternText = 'Not set';
+    if ($patternCount > 0) {
+        $dailyPatternText = $profile->meals_per_day.' full meals';
+        $optionalSnacks = (int) ($profile->snacks_per_day ?? 0);
+        if ($optionalSnacks > 0) {
+            $dailyPatternText .= ', '.$optionalSnacks.' optional '.($optionalSnacks === 1 ? 'snack' : 'snacks');
+        }
+    }
+
 @endphp
 <style>
 .dn-home {width:100%;min-width:0;color:#173e31;--dn-line:#dfe7df;--dn-muted:#61756a;}
@@ -68,6 +108,14 @@
 @media(max-width:1150px) {.dn-main {grid-template-columns:minmax(0,1.4fr) minmax(275px,1fr);}.dn-panel {padding:20px;}.dn-metric {padding:17px;}.dn-hero {padding:28px;}}
 @media(max-width:950px) {.dn-main {grid-template-columns:1fr;}.dn-side {grid-template-columns:repeat(2,minmax(0,1fr));}.dn-metrics {grid-template-columns:repeat(2,minmax(0,1fr));}.dn-hero-summary {flex-basis:155px;}}
 @media(max-width:600px) {.dn-hero {padding:24px 20px;border-radius:17px;flex-direction:column;align-items:stretch;gap:20px;}.dn-hero p {font-size:13px;margin-bottom:19px;}.dn-hero-summary {flex:auto;display:flex;align-items:center;gap:9px;padding:13px 15px;text-align:left;}.dn-hero-summary strong {font-size:24px;white-space:nowrap;}.dn-hero-summary span {margin:0;font-size:11px;max-width:80px;line-height:1.5;}.dn-hero-summary time {margin-left:auto;padding:0 0 0 12px;border-top:0;border-left:1px solid #ffffff22;font-size:11px;max-width:105px;line-height:1.5;}.dn-actions .dn-button {flex:1;font-size:12px;padding:12px 8px;}.dn-metrics {gap:10px;}.dn-metric {padding:16px 13px;}.dn-metric-title {font-size:12px;}.dn-guide {font-size:25px;}.dn-heading {margin-top:23px;}.dn-heading h2 {font-size:19px;}.dn-notice {align-items:stretch;flex-direction:column;gap:12px;padding:17px;}.dn-notice .dn-button {align-self:flex-start;}.dn-main {gap:16px;margin-top:20px;}.dn-panel {padding:19px 16px;}.dn-side {grid-template-columns:1fr;gap:16px;}.dn-shortcuts {grid-template-columns:1fr;gap:10px;}.dn-shortcut {padding:18px;}.dn-menu-row {gap:10px;grid-template-columns:30px minmax(0,1fr);}.dn-order {width:28px;height:28px;}.dn-menu-row h3 {font-size:14px;}.dn-meal-macros {gap:5px 9px;}}
+
+#dashboard-week {scroll-margin-top:24px;}
+.dn-week-switch {display:flex;gap:5px;padding:4px;border-radius:10px;background:#f2f5ef;margin-bottom:16px;}
+.dn-week-tab {display:flex;flex:1;align-items:center;justify-content:center;min-height:44px;padding:9px 12px;border-radius:7px;font-size:12px;font-weight:700;color:#5d7461;text-decoration:none;}
+.dn-week-tab.is-active {background:#fff;color:#214e36;box-shadow:0 1px 4px #173e3110;}
+.dn-profile div.dn-pattern-row {flex-wrap:wrap;gap:6px 14px;}
+.dn-profile .dn-pattern-row dd {white-space:nowrap;margin-left:auto;}
+
 </style>
 <div class="dn-home">
     <section class="dn-hero" aria-labelledby="dn-welcome">
@@ -107,17 +155,19 @@
 @endif
 
     <div class="dn-heading">
-<h2>Your daily guide</h2>
+<h2>Your daily nutrition</h2>
 <a href="{{ route('nutrition-profile.edit') }}">View calculations &amp; adjust macros →</a>
 </div>
     <section class="dn-metrics" aria-label="Daily targets and planned nutrition">
         
-@foreach($metrics as $metric)
+@foreach($dashboardMetrics as $metric)
 
             <article class="dn-metric" style="--dn-color:{{ $metric['color'] }}">
                 <div class="dn-metric-title">
 <span class="dn-dot" aria-hidden="true">
 </span>{{ $metric['label'] }}</div>
+
+
                 <strong class="dn-guide">{{ $format($metric['guide'], $metric['decimals']) }} <small>{{ $metric['unit'] }}</small>
 </strong>
                 <span class="dn-caption">{{ $metric['guide'] === null ? 'Guide unavailable' : 'Daily guide' }}</span>
@@ -148,6 +198,7 @@
 @endif
 
                 </p>
+
             </article>
         
 @endforeach
@@ -198,6 +249,7 @@
 <span>{{ $format($row['nutrition']['protein_g']) }} g protein</span>
 <span>{{ $format($row['nutrition']['carbohydrate_g']) }} g total carbs</span>
 <span>{{ $format($row['nutrition']['fat_g']) }} g fat</span>
+<span>{{ $format($row['nutrition']['fibre_g']) }} g fibre</span>
 </p>
                                 <details>
 <summary>Ingredients &amp; preparation</summary>
@@ -237,14 +289,26 @@
             <a class="dn-profile-link" href="{{ route('meal-plan.index', ['date' => $date]) }}">Open today’s meal plan →</a>
         </section>
         <div class="dn-side">
-            <section class="dn-panel" aria-labelledby="dn-week-title">
+            <section class="dn-panel" id="dashboard-week" aria-labelledby="dn-week-title">
                 <div class="dn-panel-head">
 <h2 id="dn-week-title">Your week</h2>
-<span class="dn-muted" style="font-size:11px">{{ $weekStart->format('j M') }} – {{ $weekStart->addDays(6)->format('j M') }}</span>
+<span class="dn-muted" style="font-size:11px">{{ $displayWeekStart->format('j M') }} – {{ $displayWeekStart->addDays(6)->format('j M Y') }}</span>
 </div>
-                <nav class="dn-week" aria-label="This week’s meal plans">
+                
+                <nav class="dn-week-switch" aria-label="Choose a planning week">
+                    <a class="dn-week-tab {{ !$showNextWeek ? 'is-active' : '' }}"
+                       href="{{ route('dashboard') }}#dashboard-week"
+                       aria-label="Show this week"
+                       aria-current="{{ !$showNextWeek ? 'true' : 'false' }}">This week</a>
+                    <a class="dn-week-tab {{ $showNextWeek ? 'is-active' : '' }}"
+                       href="{{ route('dashboard', ['dashboard_week' => 'next']) }}#dashboard-week"
+                       aria-label="Show next week"
+                       aria-current="{{ $showNextWeek ? 'true' : 'false' }}">Next week</a>
+                </nav>
+
+                <nav class="dn-week" aria-label="Displayed week’s meal plans">
                     
-@foreach($weekDays as $day)
+@foreach($displayWeekDays as $day)
 <a class="dn-day {{ $day['today'] ? 'is-today' : '' }} {{ $day['count'] > 0 ? 'has-meals' : '' }}" href="{{ route('meal-plan.index', ['date' => $day['date']->toDateString()]) }}" aria-label="{{ $day['date']->format('l j F') }}: {{ $day['count'] }} meals planned" 
 @if($day['today'])
 aria-current="date"
@@ -259,8 +323,8 @@ aria-current="date"
 
                 </nav>
                 <div class="dn-week-footer">
-<p>{{ $weekPlannedDays }} of 7 days have planned meals</p>
-<a href="{{ route('weekly-meals.create', ['date' => $date]) }}">Plan my week →</a>
+<p>{{ $displayWeekPlannedDays }} of 7 days have planned meals</p>
+<a href="{{ route('weekly-meals.create', ['date' => $displayWeekStart->toDateString()]) }}">Plan my week →</a>
 </div>
             </section>
             <section class="dn-panel" aria-labelledby="dn-profile-title">
@@ -273,29 +337,9 @@ aria-current="date"
 <h3>{{ $goalLabels[$profile?->goal ?? ''] ?? 'Choose your direction' }}</h3>
 </div>
                 <dl class="dn-profile">
-                    <div>
+                    <div class="dn-pattern-row">
                         <dt>Daily pattern</dt>
-                        <dd>
-                            
-@if($patternCount > 0)
-
-                                {{ $profile->meals_per_day }} full meals
-
-@if(($profile->snacks_per_day ?? 0) > 0)
-
-                                    <br>
-                                    {{ $profile->snacks_per_day }} optional
-                                    {{ $profile->snacks_per_day === 1 ? 'snack' : 'snacks' }}
-                                
-@endif
-
-@else
-
-                                Not set
-                            
-@endif
-
-                        </dd>
+                        <dd>{{ $dailyPatternText }}</dd>
                     </div>
                     <div>
 <dt>Profile weight</dt>

@@ -36,7 +36,7 @@ class DashboardController extends Controller
         $orderedSlots = collect($slots)->sortBy(fn ($label, $slot) => MealPlanSlots::displayOrder($slot))->all();
         $rows = [];
         $totals = ['energy_kcal' => 0.0, 'protein_g' => 0.0, 'carbohydrate_g' => 0.0,
-            'fat_g' => 0.0, 'estimated_available_carbohydrate_g' => 0.0];
+            'fat_g' => 0.0, 'fibre_g' => 0.0, 'estimated_available_carbohydrate_g' => 0.0];
         foreach ($orderedSlots as $slot => $label) {
             $entry = $entries->get($slot);
             $snapshot = $entry?->snapshot ?? [];
@@ -64,9 +64,10 @@ class DashboardController extends Controller
             ['key' => 'protein_g', 'target' => 'protein_g', 'label' => 'Protein', 'unit' => 'g', 'decimals' => 1, 'color' => '#6688ae'],
             ['key' => 'estimated_available_carbohydrate_g', 'target' => 'carbohydrate_g', 'label' => 'Available carbs', 'unit' => 'g', 'decimals' => 1, 'color' => '#c49a51'],
             ['key' => 'fat_g', 'target' => 'fat_g', 'label' => 'Fat', 'unit' => 'g', 'decimals' => 1, 'color' => '#a77997'],
+            ['key' => 'fibre_g', 'target' => null, 'label' => 'Fibre', 'unit' => 'g', 'decimals' => 1, 'color' => '#718943'],
         ];
         $metrics = array_map(function ($metric) use ($targets, $totals) {
-            $guide = ($targets['status'] ?? null) === 'ready' ? $this->number($targets[$metric['target']] ?? null) : null;
+            $guide = $metric['target'] !== null && ($targets['status'] ?? null) === 'ready' ? $this->number($targets[$metric['target']] ?? null) : null;
             $planned = $totals[$metric['key']];
             $percent = $planned !== null && $guide !== null && $guide > 0 ? 100 * $planned / $guide : null;
             return $metric + compact('guide', 'planned', 'percent');

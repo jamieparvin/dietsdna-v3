@@ -66,12 +66,7 @@ class DashboardTest extends TestCase
     public function test_dashboard_is_authenticated_and_uses_the_new_controller(): void
     {
         $this->get(route('dashboard'))->assertRedirect(route('login'));
-        $route = app('router')->getRoutes()->getByName('dashboard');
-
-        $this->assertSame(
-            DashboardController::class,
-            $route->getControllerClass()
-        );
+        $this->assertSame(DashboardController::class, app('router')->getRoutes()->getByName('dashboard')->getControllerClass());
     }
 
     public function test_empty_dashboard_shows_current_guides_and_all_full_meal_slots(): void
@@ -205,6 +200,29 @@ class DashboardTest extends TestCase
             ->assertSee('<script>alert("name")</script>')
             ->assertDontSee('<script>alert("name")</script>', false)
             ->assertDontSee('<script>alert("method")</script>', false);
+    }
+
+    public function test_fibre_card_sums_planned_snapshots_without_inventing_a_target(): void
+    {
+        $this->planned($this->owner);
+        $this->planned($this->owner, '2026-10-25', 'lunch');
+        $response = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk()->assertSee('Fibre planned today');
+        $this->assertEquals(20, $response->viewData('totals')['fibre_g']);
+        $this->assertCount(5, $response->viewData('metrics'));
+        $metric = collect($response->viewData('metrics'))->firstWhere('key', 'fibre_g');
+        $this->assertEquals(20, $metric['planned']);
+        $this->assertNull($metric['guide']);
+        $this->assertNull($metric['percent']);
+    }
+
+    public function test_missing_fibre_is_not_reported_as_zero(): void
+    {
+        $this->planned($this->owner, '2026-10-25', 'breakfast', [
+            'energy_kcal' => 500, 'protein_g' => 40, 'carbohydrate_g' => 60, 'fat_g' => 12,
+        ]);
+        $this->planned($this->owner, '2026-10-25', 'lunch');
+        $response = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk()->assertSee('Some planned fibre data is unavailable.');
+        $this->assertNull($response->viewData('totals')['fibre_g']);
     }
 
 }
