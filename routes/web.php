@@ -11,6 +11,7 @@ use App\Http\Controllers\FoodPreferenceController;
 use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\MealIdeaController;
 use App\Http\Controllers\NutritionProfileController;
+use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\SavedMealController;
 use App\Http\Controllers\ShoppingListController;
 use App\Http\Middleware\EnsureUserIsAdmin;
@@ -107,6 +108,20 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/meal-plan', [MealPlanController::class, 'index'])
         ->name('meal-plan.index');
+
+    Route::get('/progress', [ProgressController::class, 'index'])
+        ->name('progress.index');
+
+    Route::post('/progress', [ProgressController::class, 'store'])
+        ->name('progress.store');
+
+    Route::put('/progress/{entry}', [ProgressController::class, 'update'])
+        ->whereNumber('entry')
+        ->name('progress.update');
+
+    Route::delete('/progress/{entry}', [ProgressController::class, 'destroy'])
+        ->whereNumber('entry')
+        ->name('progress.destroy');
 
     Route::get('/shopping-list', [ShoppingListController::class, 'index'])
         ->name('shopping-list.index');

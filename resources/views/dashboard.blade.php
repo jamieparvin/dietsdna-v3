@@ -355,6 +355,100 @@ aria-current="date"
                 </dl>
                 <a class="dn-profile-link" href="{{ route('nutrition-profile.edit') }}">Review profile &amp; targets →</a>
             </section>
+                    @php
+            $progressFirst = auth()->user()
+                ->weightEntries()
+                ->orderBy('recorded_on')
+                ->orderBy('id')
+                ->first();
+
+            $progressLatest = auth()->user()
+                ->weightEntries()
+                ->orderByDesc('recorded_on')
+                ->orderByDesc('id')
+                ->first();
+
+            $progressChange = $progressFirst && $progressLatest
+                ? (float) $progressLatest->weight_kg
+                    - (float) $progressFirst->weight_kg
+                : null;
+
+            $progressTarget = $profile?->target_weight_kg;
+        @endphp
+
+        <section class="dn-panel" aria-labelledby="dn-progress-title">
+            <div class="dn-panel-head">
+                <h2 id="dn-progress-title">Your progress</h2>
+
+                <span class="dn-badge">
+                    {{ $progressLatest ? 'Weight tracking' : 'Get started' }}
+                </span>
+            </div>
+
+            @if($progressLatest)
+                <div class="dn-goal">
+                    <span class="dn-eyebrow">Latest recorded weight</span>
+
+                    <h3 style="font-size:30px;margin-bottom:6px;">
+                        {{ number_format((float) $progressLatest->weight_kg, 2) }}
+                        <small style="font-size:14px;font-weight:500;">kg</small>
+                    </h3>
+
+                    <p class="dn-muted" style="margin:0;">
+                        {{ $progressLatest->recorded_on->format('j F Y') }}
+                    </p>
+                </div>
+
+                <dl class="dn-profile">
+                    <div>
+                        <dt>Starting weight</dt>
+                        <dd>
+                            {{ number_format((float) $progressFirst->weight_kg, 2) }} kg
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Change since first entry</dt>
+                        <dd>
+                            {{ $progressChange > 0 ? '+' : '' }}{{ number_format($progressChange, 2) }} kg
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Target weight</dt>
+                        <dd>
+                            {{ $progressTarget === null
+                                ? 'Not set'
+                                : number_format((float) $progressTarget, 2).' kg' }}
+                        </dd>
+                    </div>
+                </dl>
+
+                <a class="dn-profile-link" href="{{ route('progress.index') }}">
+                    View progress &amp; record weight →
+                </a>
+            @else
+                <div class="dn-goal">
+                    <h3 style="margin-bottom:8px;">Start your weight history</h3>
+
+                    <p class="dn-muted" style="margin:0;">
+                        Record your first weigh-in to track changes towards your goal.
+                    </p>
+                </div>
+
+                <a
+                    class="dn-profile-link"
+                    href="{{ route('progress.index') }}#weight-entry-form"
+                >
+                    Record your first weight →
+                </a>
+            @endif
+
+            <p class="dn-muted" style="font-size:11px;margin:14px 0 0;">
+                Weigh-ins are separate from your profile weight and do not
+                automatically change your calorie guide.
+            </p>
+        </section>
         </div>
     </div>
     <div class="dn-heading">
