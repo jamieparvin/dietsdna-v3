@@ -28,7 +28,7 @@ class ShoppingGenerationTest extends TestCase
         $owner->nutritionProfile()->create(['date_of_birth' => '1996-01-01', 'height_cm' => 180,
             'weight_kg' => 80, 'calculation_sex' => 'male', 'activity_level' => 'moderate',
             'goal' => 'maintain_weight', 'planning_context' => 'general_adult', 'resistance_training' => false,
-            'meals_per_day' => 3, 'snacks_per_day' => 0, 'dietary_preference' => 'no_preference']);
+            'meals_per_day' => 3, 'snacks_per_day' => 0, 'dietary_preference' => 'vegan']);
         $foods = collect();
         foreach ([['raw', true], ['dry', true], ['ready_to_eat', true], ['raw', false], ['boiled', false], ['roasted', true]] as $i => [$preparation, $active]) {
             $foods->push(Ingredient::create(['food_code' => 'GEN-SHOP-'.$i, 'name' => 'Food '.$i,
@@ -72,6 +72,7 @@ class ShoppingGenerationTest extends TestCase
         Http::assertSentCount(4);
         foreach (Http::recorded() as [$request, $response]) {
             $input = json_decode($request['input'], true);
+            $this->assertArrayNotHasKey('dietary_preference', $input);
             $this->assertSame($allowed->pluck('id')->all(), array_column($input['ingredient_catalog'], 'id'));
             $this->assertStringContainsString('Raw and dry ingredient entries mean quantities are weighed before cooking.', $request['instructions']);
             $this->assertStringContainsString('Ready-to-eat entries are weighed as served', $request['instructions']);

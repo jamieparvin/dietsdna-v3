@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\IngredientController;
 use App\Http\Controllers\Admin\IngredientImportController;
 use App\Http\Controllers\Admin\RecipeController;
@@ -31,11 +32,17 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        Route::view('/', 'admin.dashboard')
+        
+    
+        Route::get('/', AdminDashboardController::class)
             ->name('dashboard');
 
         Route::get('/users', [UserController::class, 'index'])
             ->name('users.index');
+
+        Route::get('/users/{user}', [UserController::class, 'show'])
+            ->whereNumber('user')
+            ->name('users.show');
 
         Route::get('/ingredients/import', [
             IngredientImportController::class,

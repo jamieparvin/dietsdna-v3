@@ -3,6 +3,39 @@
 @section('title', 'Customers')
 
 @section('content')
+    <style>
+        .customer-details-link {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:44px;
+            padding:10px 14px;
+            border:1px solid #d5e0d8;
+            border-radius:8px;
+            background:#fff;
+            color:#234d37;
+            font-size:13px;
+            font-weight:650;
+            text-decoration:none;
+            white-space:nowrap;
+        }
+
+        .customer-details-link:hover {
+            background:#edf4ee;
+        }
+
+        .customer-name-link {
+            color:#234d37;
+            text-underline-offset:3px;
+        }
+
+        .customer-details-link:focus-visible,
+        .customer-name-link:focus-visible {
+            outline:3px solid #9fbea9;
+            outline-offset:3px;
+        }
+    </style>
+
     <h1>Customers</h1>
 
     <p>
@@ -13,11 +46,11 @@
 
     <section class="card">
         <form method="GET" action="{{ route('admin.users.index') }}">
-            <label for="search" style="margin-top: 0;">
+            <label for="search" style="margin-top:0;">
                 Search by name or email
             </label>
 
-            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
                 <input
                     id="search"
                     name="search"
@@ -25,65 +58,81 @@
                     value="{{ $search }}"
                     maxlength="150"
                     placeholder="Enter a name or email"
-                    style="flex: 1 1 220px; min-width: 0;"
+                    style="flex:1 1 220px;min-width:0;"
                 >
 
                 <button type="submit">Search</button>
 
-                @if ($search !== '')
+                @if($search !== '')
                     <a href="{{ route('admin.users.index') }}">Clear</a>
                 @endif
             </div>
         </form>
 
-        <div style="overflow-x: auto; margin-top: 28px;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <caption style="text-align: left; padding-bottom: 16px; font-weight: 600;">
+        <div style="overflow-x:auto;margin-top:28px;">
+            <table style="width:100%;border-collapse:collapse;text-align:left;">
+                <caption style="text-align:left;padding-bottom:16px;font-weight:600;">
                     Registered users
                 </caption>
 
                 <thead>
-                    <tr style="background: #f0f5f2;">
-                        <th scope="col" style="padding: 14px;">ID</th>
-                        <th scope="col" style="padding: 14px;">Name</th>
-                        <th scope="col" style="padding: 14px;">Email</th>
-                        <th scope="col" style="padding: 14px;">Role</th>
-                        <th scope="col" style="padding: 14px;">Registered</th>
+                    <tr style="background:#f0f5f2;">
+                        <th scope="col" style="padding:14px;">ID</th>
+                        <th scope="col" style="padding:14px;">Name</th>
+                        <th scope="col" style="padding:14px;">Email</th>
+                        <th scope="col" style="padding:14px;">Role</th>
+                        <th scope="col" style="padding:14px;">Registered</th>
+                        <th scope="col" style="padding:14px;">Actions</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    @forelse ($users as $user)
-                        <tr style="border-bottom: 1px solid #e5ece7;">
-                            <td style="padding: 16px 14px;">
+                    @forelse($users as $user)
+                        <tr style="border-bottom:1px solid #e5ece7;">
+                            <td style="padding:16px 14px;">
                                 {{ $user->id }}
                             </td>
 
-                            <td style="padding: 16px 14px;">
-                                <strong>{{ $user->name }}</strong>
+                            <td style="padding:16px 14px;">
+                                <a
+                                    class="customer-name-link"
+                                    href="{{ route('admin.users.show', $user) }}"
+                                >
+                                    <strong>{{ $user->name }}</strong>
+                                </a>
 
-                                @if ($user->id === auth()->id())
+                                @if($user->id === auth()->id())
                                     <span class="badge">You</span>
                                 @endif
                             </td>
 
-                            <td style="padding: 16px 14px;">
+                            <td style="padding:16px 14px;">
                                 {{ $user->email }}
                             </td>
 
-                            <td style="padding: 16px 14px;">
+                            <td style="padding:16px 14px;">
                                 <span class="badge">
                                     {{ $user->is_admin ? 'Administrator' : 'Customer' }}
                                 </span>
                             </td>
 
-                            <td style="padding: 16px 14px; white-space: nowrap;">
-                                {{ $user->created_at?->format('d M Y') ?? '—' }}
+                            <td style="padding:16px 14px;white-space:nowrap;">
+                                {{ $user->created_at?->timezone('Europe/London')->format('d M Y') ?? '—' }}
+                            </td>
+
+                            <td style="padding:16px 14px;">
+                                <a
+                                    class="customer-details-link"
+                                    href="{{ route('admin.users.show', $user) }}"
+                                    aria-label="View details for {{ $user->name }}"
+                                >
+                                    View details →
+                                </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" style="padding: 28px 14px;">
+                            <td colspan="6" style="padding:28px 14px;">
                                 No accounts found.
                             </td>
                         </tr>
@@ -92,12 +141,12 @@
             </table>
         </div>
 
-        @if ($users->hasPages())
+        @if($users->hasPages())
             <nav
                 aria-label="Customer pages"
-                style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; margin-top: 24px;"
+                style="display:flex;flex-wrap:wrap;gap:20px;align-items:center;margin-top:24px;"
             >
-                @if ($users->previousPageUrl())
+                @if($users->previousPageUrl())
                     <a href="{{ $users->previousPageUrl() }}">Previous</a>
                 @endif
 
@@ -105,7 +154,7 @@
                     Page {{ $users->currentPage() }} of {{ $users->lastPage() }}
                 </span>
 
-                @if ($users->nextPageUrl())
+                @if($users->nextPageUrl())
                     <a href="{{ $users->nextPageUrl() }}">Next</a>
                 @endif
             </nav>

@@ -28,11 +28,23 @@
 
         $goalText = $goals[$profile?->goal ?? ''] ?? 'Not set';
         $activityText = $activityLevels[$profile?->activity_level ?? ''] ?? 'Not set';
-        $dietText = $dietaryPreferences[$profile?->dietary_preference ?? ''] ?? 'Not set';
 
         $today = now()->timezone('Europe/London');
         $earliestBirthDate = $today->copy()->subYears(120)->toDateString();
         $latestBirthDate = $today->copy()->subYears(18)->toDateString();
+
+        $snackCount = (int) ($profile?->snacks_per_day ?? 0);
+
+        $patternText = $profile?->meals_per_day
+            ? $profile->meals_per_day.' full meals · '.(
+                $snackCount === 0
+                    ? 'No snacks'
+                    : $snackCount.' optional '.($snackCount === 1 ? 'snack' : 'snacks')
+            )
+            : 'Not set';
+
+        $hasRestrictions = filled($profile?->allergies)
+            || filled($profile?->foods_to_avoid);
     @endphp
 
     <style>
@@ -68,6 +80,7 @@
         .pf-heading p {
             margin: 0;
             font-size: 14px;
+            line-height: 1.7;
         }
 
         .pf-saved {
@@ -123,7 +136,9 @@
 
         .pf-description {
             margin: 4px 0 0;
+            color: #6b786f;
             font-size: 12px;
+            line-height: 1.6;
         }
 
         .pf-list {
@@ -150,6 +165,10 @@
             font-weight: 600;
             line-height: 1.5;
             overflow-wrap: anywhere;
+            white-space: normal;
+        }
+
+        .pf-list dd.pf-text {
             white-space: pre-line;
         }
 
@@ -164,6 +183,35 @@
             line-height: 1.7;
         }
 
+        .pf-help-box {
+            padding: 16px 18px;
+            background: #f3f7ee;
+            border: 1px solid #e0e8d8;
+            border-radius: 12px;
+        }
+
+        .pf-help-box strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .pf-warning {
+            padding: 16px 18px;
+            background: #fff8e9;
+            border: 1px solid #ead9af;
+            border-radius: 12px;
+            color: #705725;
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        .pf-warning strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
         .pf-edit {
             margin-top: auto;
             background: #fafbf7;
@@ -176,6 +224,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
+            min-height: 48px;
             padding: 15px 17px;
             cursor: pointer;
             font-size: 13px;
@@ -221,10 +270,12 @@
 
         .pf-page select,
         .pf-page textarea,
-        .pf-page input:not([type="hidden"]) {
+        .pf-page input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]) {
             width: 100%;
             min-width: 0;
+            min-height: 46px;
             padding: 13px;
+            box-sizing: border-box;
             background: white;
             border: 1px solid #b9cbc0;
             border-radius: 8px;
@@ -253,6 +304,32 @@
             font-weight: 600;
         }
 
+        .pf-link {
+            display: inline-flex;
+            align-items: center;
+            align-self: flex-start;
+            min-height: 44px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #205b43;
+        }
+
+        .pf-errors {
+            margin-bottom: 22px;
+            padding: 18px 22px;
+            background: #fff2ee;
+            border: 1px solid #edcfc5;
+            border-radius: 12px;
+            color: #8a382b;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .pf-errors ul {
+            margin: 8px 0 0;
+            padding-left: 20px;
+        }
+
         .pf-save {
             display: flex;
             align-items: center;
@@ -266,6 +343,10 @@
             border-radius: 16px;
         }
 
+        .pf-save > .pf-note {
+            flex: 1 1 300px;
+        }
+
         .pf-save-actions {
             display: flex;
             align-items: center;
@@ -275,6 +356,20 @@
 
         .pf-save-actions a {
             font-size: 13px;
+        }
+
+        .pf-save-actions button {
+            min-height: 46px;
+        }
+
+        .pf-page summary:focus-visible,
+        .pf-page a:focus-visible,
+        .pf-page button:focus-visible,
+        .pf-page input:focus-visible,
+        .pf-page select:focus-visible,
+        .pf-page textarea:focus-visible {
+            outline: 3px solid #9fbea9;
+            outline-offset: 3px;
         }
 
         @media (max-width: 1050px) {
@@ -299,6 +394,10 @@
                 padding: 20px;
             }
 
+            .pf-save > .pf-note {
+                flex: auto;
+            }
+
             .pf-save-actions {
                 align-items: stretch;
                 flex-direction: column;
@@ -310,23 +409,40 @@
         <header class="pf-heading">
             <div>
                 <div class="pf-eyebrow">Made around you</div>
-
                 <h1>Your nutrition profile</h1>
 
                 <p>
-                    Your details, goals and food preferences.
+                    Your measurements, goals and meal pattern.
                     Open a card to make changes.
                 </p>
             </div>
 
             <div class="pf-saved">
-                @if ($hasProfile)
+                @if ($profile?->updated_at)
                     Saved {{ $profile->updated_at->timezone('Europe/London')->format('j M Y, H:i') }}
                 @else
                     Ready to personalise
                 @endif
             </div>
         </header>
+
+        <p class="pf-note">Automatic meal planning does not currently support food allergies. Food preferences are for ingredient choices and do not provide allergy protection.</p>
+        <p class="pf-note">Manage ordinary ingredient choices in <a href="{{ route('food-preferences.edit') }}">Food preferences</a>.</p>
+        @if ($hasRestrictions)
+            <p class="pf-warning" role="status">Automatic meal generation is unavailable because your account has a recorded allergy or food restriction. Food preferences do not provide allergy protection.</p>
+        @endif
+
+        @if ($errors->any())
+            <div class="pf-errors" role="alert">
+                <strong>Please check the following:</strong>
+
+                <ul>
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         <form
             method="POST"
@@ -375,8 +491,10 @@
                     </dl>
 
                     <p class="pf-note">
-                        Your profile weight is a saved measurement.
-                        Dated weight tracking will be added separately.
+                        Your profile weight is used to calculate your nutrition guide.
+                        Record dated weigh-ins in
+                        <a href="{{ route('progress.index') }}">Your progress</a>.
+                        Weigh-ins do not automatically update this profile weight.
                     </p>
 
                     <details
@@ -402,7 +520,7 @@
                                     >
 
                                     <p class="pf-note" id="birth-date-help">
-                                        Optional. This nutrition profile is for adults aged 18 and over.
+                                        This nutrition profile is for adults aged 18 and over.
                                     </p>
                                 </div>
 
@@ -472,18 +590,7 @@
 
                         <div>
                             <dt>Daily meal pattern</dt>
-                            <dd>
-                                @if($profile?->meals_per_day)
-                                    {{ $profile->meals_per_day }} full meals ·
-                                    {{ (int) $profile->snacks_per_day === 0
-                                        ? 'No snacks'
-                                        : $profile->snacks_per_day.' '.(
-                                            (int) $profile->snacks_per_day === 1 ? 'snack' : 'snacks'
-                                        ) }}
-                                @else
-                                    Not set
-                                @endif
-                            </dd>
+                            <dd>{{ $patternText }}</dd>
                         </div>
 
                         <div class="pf-span">
@@ -578,39 +685,9 @@
                                     </select>
 
                                     <p class="pf-note">
-                                        Choose your number of full meals. Snacks are selected separately.
+                                        Choose your number of full meals.
+                                        Snacks are selected separately.
                                     </p>
-
-                                    <label for="snacks_per_day" style="display:block; margin-top:16px;">
-                                        Optional snacks
-                                    </label>
-
-                                    <select
-                                        id="snacks_per_day"
-                                        name="snacks_per_day"
-                                        aria-describedby="snacks-help"
-                                    >
-                                        @foreach([0 => 'No snacks', 1 => '1 snack per day', 2 => '2 snacks per day'] as $value => $label)
-                                            <option
-                                                value="{{ $value }}"
-                                                @selected(
-                                                    (string) old('snacks_per_day', $profile?->snacks_per_day ?? 0)
-                                                    === (string) $value
-                                                )
-                                            >
-                                                {{ $label }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-
-                                    <p class="pf-note" id="snacks-help">
-                                        Snacks share your daily calorie and macro budget.
-                                        They do not increase your daily targets.
-                                    </p>
-
-                                    @error('snacks_per_day')
-                                        <p class="pf-note" role="alert">{{ $message }}</p>
-                                    @enderror
                                 </div>
 
                                 <div>
@@ -629,135 +706,64 @@
                                         @endforeach
                                     </select>
                                 </div>
+
+                                <div class="pf-span">
+                                    <label for="snacks_per_day">Optional snacks</label>
+
+                                    <select
+                                        id="snacks_per_day"
+                                        name="snacks_per_day"
+                                        aria-describedby="snacks-help"
+                                    >
+                                        @foreach ([0 => 'No snacks', 1 => '1 snack per day', 2 => '2 snacks per day'] as $value => $label)
+                                            <option
+                                                value="{{ $value }}"
+                                                @selected((string) old('snacks_per_day', $profile?->snacks_per_day ?? 0) === (string) $value)
+                                            >
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+
+                                    <p class="pf-note" id="snacks-help">
+                                        Snacks share your daily calorie and macro budget.
+                                        They do not increase your daily targets.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </details>
                 </section>
 
-                <section class="pf-card" aria-labelledby="diet-heading">
-                    <div class="pf-card-head">
-                        <span class="pf-number" aria-hidden="true">03</span>
-
-                        <div>
-                            <h2 id="diet-heading">Dietary preferences</h2>
-                            <p class="pf-description">Your preferred way of eating</p>
-                        </div>
-                    </div>
-
-                    <span class="pf-preference">{{ $dietText }}</span>
-
-                    <p class="pf-note">
-                        Your dietary preference is separate from allergies,
-                        intolerances and individual foods you avoid.
-                    </p>
-
-                    <details
-                        class="pf-edit"
-                        @if ($openSection(['dietary_preference'])) open @endif
-                    >
-                        <summary>Edit dietary preference</summary>
-
-                        <div class="pf-edit-body">
-                            <label for="dietary_preference">Dietary preference</label>
-
-                            <select id="dietary_preference" name="dietary_preference">
-                                <option value="">Choose your preference</option>
-
-                                @foreach ($dietaryPreferences as $value => $label)
-                                    <option
-                                        value="{{ $value }}"
-                                        @selected(old('dietary_preference', $profile?->dietary_preference) === $value)
-                                    >
-                                        {{ $label }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </details>
-                </section>
-
-                <section class="pf-card" aria-labelledby="allergies-heading">
-                    <div class="pf-card-head">
-                        <span class="pf-number" aria-hidden="true">04</span>
-
-                        <div>
-                            <h2 id="allergies-heading">Allergies and restrictions</h2>
-                            <p class="pf-description">Foods you need or prefer to avoid</p>
-                        </div>
-                    </div>
-
-                    <dl class="pf-list">
-                        <div class="pf-span">
-                            <dt>Food allergies</dt>
-                            <dd>{{ filled($profile?->allergies) ? $profile->allergies : 'None recorded' }}</dd>
-                        </div>
-
-                        <div class="pf-span">
-                            <dt>Other exclusions or intolerances</dt>
-                            <dd>{{ filled($profile?->foods_to_avoid) ? $profile->foods_to_avoid : 'None recorded' }}</dd>
-                        </div>
-                    </dl>
-
-                    <p class="pf-note">
-                        These details are saved as notes.
-                        Automatic allergy filtering is not available yet.
-                    </p>
-
-                    <details
-                        class="pf-edit"
-                        @if ($openSection(['allergies', 'foods_to_avoid'])) open @endif
-                    >
-                        <summary>Edit allergies and restrictions</summary>
-
-                        <div class="pf-edit-body">
-                            <label for="allergies">Food allergies</label>
-
-                            <textarea
-                                id="allergies"
-                                name="allergies"
-                                maxlength="2000"
-                                placeholder="For example: peanuts, sesame"
-                            >{{ old('allergies', $profile?->allergies) }}</textarea>
-
-                            <label for="foods_to_avoid">
-                                Other exclusions or intolerances
-                            </label>
-
-                            <textarea
-                                id="foods_to_avoid"
-                                name="foods_to_avoid"
-                                maxlength="2000"
-                                placeholder="Foods you dislike or do not tolerate"
-                            >{{ old('foods_to_avoid', $profile?->foods_to_avoid) }}</textarea>
-                        </div>
-                    </details>
-                </section>
-                
                 @include('nutrition-profile.calculation-details')
                 @include('nutrition-profile.targets')
             </div>
 
             <footer class="pf-save">
                 <p class="pf-note">
-                    All fields are optional.
-                    Save your changes to update the summaries above.
+                    You can save an incomplete profile.
+                    Complete the calculation details to receive a nutrition guide,
+                    and choose your meal pattern before generating meals.
+                    Save changes before navigating to another page.
                 </p>
 
                 <div class="pf-save-actions">
                     <a href="{{ route('dashboard') }}">Back to dashboard</a>
-
                     <button type="submit">Save nutrition profile</button>
                 </div>
             </footer>
         </form>
 
         @include('nutrition-profile.macros')
-        
     </div>
 
     <script>
         (() => {
             const form = document.getElementById('nutrition-profile-form');
+
+            if (!form) {
+                return;
+            }
 
             form.addEventListener('invalid', (event) => {
                 const editor = event.target.closest('details');

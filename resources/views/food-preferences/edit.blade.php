@@ -419,8 +419,7 @@
         <strong>Dislike</strong> marks it to leave out.
         <strong>Unspecified</strong> keeps it available.
         Your choice applies to all linked raw and cooked versions of the food.
-        These preferences are saved for the upcoming meal planner;
-        continue recording allergies in your nutrition profile.
+        Food preferences are for ingredient choices and do not provide allergy protection.
     </div>
 
     <div class="fp-toolbar">

@@ -57,32 +57,17 @@ class MealIdeaGenerator
 
         $profile = $user->nutritionProfile()->first();
 
+        if (
+            trim((string) $profile?->allergies) !== ''
+            || trim((string) $profile?->foods_to_avoid) !== ''
+        ) {
+            $this->fail('Automatic meal generation is unavailable because your account has a recorded allergy or food restriction. Food preferences do not provide allergy protection.');
+        }
+
         $targets = $this->calculator->calculate($profile);
 
         if ($targets['status'] !== 'ready') {
-
             $this->fail($targets['message']);
-
-        }
-
-        if (
-
-            trim((string) $profile->allergies) !== ''
-
-            || trim((string) $profile->foods_to_avoid) !== ''
-
-        ) {
-
-            $this->fail(
-
-                'Your profile contains allergy or food-avoidance notes. '
-
-                .'Automatic meal generation needs structured filtering for '
-
-                .'these notes before it can be enabled for your profile.'
-
-            );
-
         }
 
         $mealCount = (int) $profile->meals_per_day;
@@ -115,26 +100,6 @@ class MealIdeaGenerator
 
             ->all();
 
-        $diet = $profile->dietary_preference ?: 'no_preference';
-
-        if (! in_array($diet, [
-
-            'no_preference',
-
-            'flexitarian',
-
-            'vegetarian',
-
-            'vegan',
-
-            'pescatarian',
-
-        ], true)) {
-
-            $this->fail('Choose a valid dietary preference in your profile.');
-
-        }
-
         $query = Ingredient::query()->where('is_active', true);
 
         foreach (self::NUTRIENTS as $field) {
@@ -149,16 +114,14 @@ class MealIdeaGenerator
 
             ->get()
 
-            ->filter(function ($ingredient) use ($preferences, $diet) {
+            ->filter(function ($ingredient) use ($preferences) {
 
                 $choice = $preferences[$ingredient->preferenceFoodKey()]
 
                     ?? 'neutral';
 
                 return IngredientPreparation::purchaseReady((string) $ingredient->preparation_state)
-                    && $choice !== 'excluded'
-
-                    && $this->allowedForDiet($ingredient, $diet);
+                    && $choice !== 'excluded';
 
             })
 
@@ -234,6 +197,8 @@ class MealIdeaGenerator
 
         $signature = hash('sha256', json_encode([
 
+            'eligibility_version' => 'food-preferences-only-v1',
+
             'allocation_version' => MealTargetAllocator::VERSION,
 
             'meal_count' => $mealCount,
@@ -273,8 +238,6 @@ class MealIdeaGenerator
             'allocation' => $allocation,
 
             'meal_type' => $selectedType,
-
-            'diet' => $diet,
 
             'cooking_minutes' => $profile->cooking_minutes,
 
@@ -423,8 +386,6 @@ BRIEF;
             'previous_names' => array_values(array_slice($avoidNames, 0, 6)),
             'portion_guidance' => $this->portionGuidance($context),
             'meal_type' => $mealType,
-
-            'dietary_preference' => $context['diet'],
 
             'cooking_minutes_preference' => $context['cooking_minutes'],
 
@@ -606,152 +567,6 @@ BRIEF;
     public static function foodKey(Ingredient $ingredient): string
     {
         return $ingredient->snapshotFoodKey();
-    }
-
-    private function allowedForDiet(
-
-        Ingredient $ingredient,
-
-        string $diet
-
-    ): bool {
-
-        if (in_array($diet, ['no_preference', 'flexitarian'], true)) {
-
-            return true;
-
-        }
-
-        $category = mb_strtolower(trim($ingredient->category));
-
-        $name = mb_strtolower(
-
-            trim((string) $ingredient->preference_food)
-
-                ?: trim($ingredient->name)
-
-        );
-
-        // Conservative food lists for this initial ingredient library.
-
-        // Unrecognised foods are withheld from restricted-diet generation.
-
-        if (in_array($category, [
-
-            'fruit', 'fruits', 'veg', 'vegetables',
-
-        ], true)) {
-
-            return true;
-
-        }
-
-        $plantFoods = [
-
-            'brown rice, wholegrain',
-
-            'white rice, long grain',
-
-            'pasta, white, plain',
-
-            'rolled oats (porridge oats)',
-
-            'quinoa',
-
-            'couscous, plain',
-
-            'rice noodles, fine',
-
-            'white potatoes',
-
-            'sweet potatoes',
-
-            'tofu',
-
-            'tempeh',
-
-            'chickpeas',
-
-            'lentils',
-
-            'kidney beans',
-
-            'green peas',
-
-            'almonds',
-
-            'walnuts',
-
-            'brazil nuts',
-
-            'macadamia nuts',
-
-            'cashews',
-
-            'peanuts',
-
-            'sunflower seeds',
-
-            'flax seeds',
-
-            'chia seeds',
-
-            'sesame seeds, whole',
-
-            'olive oil',
-
-            'coconut',
-
-            'coconut oil',
-
-            'avocado',
-
-            'cashew butter, smooth',
-
-            'almond butter, plain, unsalted',
-
-            'tahini, roasted',
-
-            'olives, green',
-
-        ];
-
-        if (in_array($name, $plantFoods, true)) {
-
-            return true;
-
-        }
-
-        if ($diet === 'vegan') {
-
-            return false;
-
-        }
-
-        if (in_array($name, [
-
-            'eggs',
-
-            'cottage cheese',
-
-            'greek yogurt',
-
-            'butter, salted',
-
-            'ghee',
-
-            'pasta noodles, egg',
-
-        ], true)) {
-
-            return true;
-
-        }
-
-        // Fish entries need adding to the reviewed list when imported.
-
-        return false;
-
     }
 
     private function fail(string $message): never

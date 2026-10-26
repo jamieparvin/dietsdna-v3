@@ -25,14 +25,6 @@ class NutritionProfileController extends Controller
         'high' => 'Very active',
     ];
 
-    private const DIETARY_PREFERENCES = [
-        'no_preference' => 'No particular preference',
-        'vegetarian' => 'Vegetarian',
-        'vegan' => 'Vegan',
-        'pescatarian' => 'Pescatarian',
-        'flexitarian' => 'Flexitarian',
-    ];
-
     public function edit(
         Request $request,
         NutritionTargetCalculator $calculator
@@ -43,7 +35,6 @@ class NutritionProfileController extends Controller
             'profile' => $profile,
             'goals' => self::GOALS,
             'activityLevels' => self::ACTIVITY_LEVELS,
-            'dietaryPreferences' => self::DIETARY_PREFERENCES,
             'targets' => $calculator->calculate($profile),
         ]);
     }
@@ -101,11 +92,6 @@ class NutritionProfileController extends Controller
                 Rule::in(array_keys(self::ACTIVITY_LEVELS)),
             ],
 
-            'dietary_preference' => [
-                'nullable',
-                Rule::in(array_keys(self::DIETARY_PREFERENCES)),
-            ],
-            
             'calculation_sex' => [
                 'nullable',
                 Rule::in(['male', 'female']),
@@ -120,8 +106,6 @@ class NutritionProfileController extends Controller
                 'nullable',
                 'boolean',
             ],
-            'allergies' => ['nullable', 'string', 'max:2000'],
-            'foods_to_avoid' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $request->user()->nutritionProfile()->updateOrCreate(

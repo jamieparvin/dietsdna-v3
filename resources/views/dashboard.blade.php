@@ -3,7 +3,6 @@
 @section('content')
 @php
     $goalLabels = ['eat_better' => 'Eat better', 'lose_weight' => 'Lose weight', 'maintain_weight' => 'Maintain weight', 'gain_weight' => 'Gain weight', 'build_muscle' => 'Build muscle'];
-    $dietLabels = ['no_preference' => 'No dietary preference', 'vegetarian' => 'Vegetarian', 'vegan' => 'Vegan', 'pescatarian' => 'Pescatarian', 'flexitarian' => 'Flexitarian'];
     $firstName = \Illuminate\Support\Str::before(trim(auth()->user()->name), ' ');
     $hour = now('Europe/London')->hour;
     $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
@@ -345,8 +344,8 @@ aria-current="date"
 <dd>{{ $profile?->weight_kg === null ? 'Not set' : number_format((float) $profile->weight_kg, 1).' kg' }}</dd>
 </div>
                     <div>
-<dt>Food style</dt>
-<dd>{{ $dietLabels[$profile?->dietary_preference ?? ''] ?? 'Not set' }}</dd>
+<dt>Ingredient choices</dt>
+<dd><a href="{{ route('food-preferences.edit') }}">Food preferences</a></dd>
 </div>
                     <div>
 <dt>Macro settings</dt>

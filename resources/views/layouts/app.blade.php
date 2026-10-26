@@ -1,9 +1,7 @@
 @php
     $isAdminArea = request()->routeIs('admin.*');
 
-    $upcomingItems = $isAdminArea
-        ? ['Meal plans', 'Imports', 'Settings']
-        : [];
+    $upcomingItems = [];
 @endphp
 
 <!DOCTYPE html>

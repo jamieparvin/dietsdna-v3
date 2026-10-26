@@ -35,7 +35,8 @@ class WeeklyMealPlanner
             'version' => 'weekly-planning-v3-full-meals',
             'portion_balance' => MealPortionBalancer::VERSION,
             'generator_signature' => $context['signature'],
-            'profile' => $profile?->getAttributes(),
+            // The retired dietary field and its timestamp are not planning inputs.
+            'profile' => array_diff_key($profile?->getAttributes() ?? [], array_flip(['dietary_preference', 'updated_at'])),
             'slots' => $slots,
         ];
         $signature = hash('sha256', json_encode($signatureInput, JSON_THROW_ON_ERROR));
