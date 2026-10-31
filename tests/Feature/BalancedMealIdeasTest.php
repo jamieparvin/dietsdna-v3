@@ -82,7 +82,7 @@ class BalancedMealIdeasTest extends TestCase
             $rows = $context['ingredients']->map(fn ($food, $i) => ['name' => $food->name, 'preparation_state' => $food->preparation_state, 'quantity_g' => [20,40,10][$i]])->all();
             if ($this->allUnfit || ($this->partial && $n === 1)) { array_pop($rows); }
             $ideas[] = ['name' => 'Meal alternative '.$n, 'description' => 'A synthetic test option.',
-                'instructions' => 'Prepare the listed ingredients.', 'ingredients' => $rows, 'totals' => [], 'calorie_difference' => -9999];
+                'instructions' => ['Arrange the listed ingredients in a bowl.', 'Combine the listed ingredients.', 'Layer the listed ingredients.'][$n - 1], 'ingredients' => $rows, 'totals' => [], 'calorie_difference' => -9999];
         }
         return ['signature' => $context['signature'], 'created_at' => now()->timestamp, 'meal_type' => $context['meal_type'], 'ideas' => $ideas];
     }

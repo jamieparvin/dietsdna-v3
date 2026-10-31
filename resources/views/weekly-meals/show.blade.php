@@ -427,6 +427,12 @@
         </div>
 
     @elseif($draft->status === 'ready')
+        @if($previewBlocked)
+            <div class="wm-notice" role="alert">
+                <strong>This is an older preview and cannot be confirmed.</strong>
+                {{ $previewBlocked }} Existing planned meals have not been changed.
+            </div>
+        @endif
         <div class="wm-notice">
             @if($replacing)
                 Keep your current plan and swap individual meals you don’t like, or choose this new week instead.
@@ -543,6 +549,17 @@
                                 </div>
 
                                 @if($row['snapshot'])
+                                    @if(!empty($row['excluded_foods']))
+                                        <p class="wm-notice" role="status">
+                                            <strong>Contains foods you now Dislike:</strong>
+                                            {{ implode(', ', $row['excluded_foods']) }}.
+                                            @if($row['existing'])
+                                                This existing meal is preserved by Fill empty slots. Swap or remove it from your plan if you want to avoid these foods.
+                                            @else
+                                                This older suggestion cannot be added. Generate a fresh preview.
+                                            @endif
+                                        </p>
+                                    @endif
                                     @php($meal = $row['snapshot'])
 
                                     <h3>{{ $meal['name'] }}</h3>
@@ -629,7 +646,7 @@
                     @csrf
                     <button type="submit" class="wm-button" id="weekly-confirm-button"
                         data-busy="{{ $replacing ? 'Replacing week…' : 'Adding meals…' }}"
-                        @disabled($planChanged)>
+                        @disabled($planChanged || $previewBlocked)>
                         {{ $replacing ? 'Replace this week' : 'Add this week to my plan' }}
                     </button>
                 </form>

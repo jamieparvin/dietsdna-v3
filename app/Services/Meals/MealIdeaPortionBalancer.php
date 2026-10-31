@@ -7,13 +7,13 @@ use Illuminate\Validation\ValidationException;
 class MealIdeaPortionBalancer
 {
     public const VERSION = 'single-meal-portions-v1';
+
     private const NUTRIENTS = ['energy_kcal', 'protein_g', 'carbohydrate_g', 'sugars_g', 'fat_g', 'saturates_g', 'fibre_g', 'salt_g'];
 
     public function __construct(
         private readonly MealPortionBalancer $balancer,
         private readonly PlannedMealSnapshot $snapshots,
-    ) {
-    }
+    ) {}
 
     public function isCurrentBatch(array $batch): bool
     {
@@ -28,6 +28,7 @@ class MealIdeaPortionBalancer
                 return false;
             }
         }
+
         return true;
     }
 
@@ -44,6 +45,7 @@ class MealIdeaPortionBalancer
         $targets = $this->targets($context);
         $catalog = $context['ingredients']->mapWithKeys(fn ($ingredient) => [(int) $ingredient->id => $ingredient->getAttributes()])->all();
         $ideas = [];
+        $rejections = [];
         $requested = count($batch['ideas']);
         foreach ($batch['ideas'] as $idea) {
             try {
@@ -65,6 +67,10 @@ class MealIdeaPortionBalancer
             } catch (ValidationException $exception) {
                 // Omit an unsuitable alternative rather than save a short portion,
                 // invent an ingredient or relax the guides. A caller may request replacements.
+                $rejections[] = [
+                    'name' => $idea['name'],
+                    'reason' => mb_substr(collect($exception->errors())->flatten()->first(), 0, 500),
+                ];
             }
         }
         if (! $ideas && ! $allowEmpty) {
@@ -75,6 +81,8 @@ class MealIdeaPortionBalancer
         $batch['balancer_version'] = MealPortionBalancer::VERSION;
         $batch['requested_count'] = $requested;
         $batch['rejected_count'] = $requested - count($ideas);
+        $batch['portion_rejections'] = $rejections;
+
         return $batch;
     }
 
@@ -135,6 +143,7 @@ class MealIdeaPortionBalancer
             }
             $targets[$field] = (float) $value;
         }
+
         return $targets;
     }
 

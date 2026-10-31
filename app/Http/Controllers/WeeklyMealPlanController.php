@@ -6,6 +6,7 @@ use App\Jobs\GenerateWeeklyMealDraft;
 use App\Models\WeeklyMealDraft;
 use App\Services\Nutrition\SnapshotNutrition;
 use App\Services\Meals\WeeklyMealPlanner;
+use App\Services\Meals\MealFoodExclusions;
 use App\Services\Meals\MealPlanWeekState;
 use App\Services\Meals\WeeklyMealSchedule;
 use Carbon\CarbonImmutable;
@@ -86,9 +87,18 @@ class WeeklyMealPlanController extends Controller
         return redirect()->route('weekly-meals.show', $draft->id);
     }
 
-    public function show(Request $request, int $draft, MealPlanWeekState $weeks)
+    public function show(Request $request, int $draft, MealPlanWeekState $weeks, WeeklyMealPlanner $planner, MealFoodExclusions $exclusions)
     {
         $draft = $this->owned($request, $draft);
+        $previewBlocked = null;
+        if ($draft->status === 'ready') {
+            try {
+                $planner->assertCurrent($draft, $request->user());
+            } catch (ValidationException $exception) {
+                $previewBlocked = collect($exception->errors())->flatten()->first();
+            }
+        }
+        $identities = $exclusions->identities($request->user());
         $state = $weeks->capture($request->user()->id, $draft->start_date);
         $existing = $state['entries']->keyBy(fn ($entry) => $entry->plan_date->format('Y-m-d').'|'.$entry->slot);
         $replacing = $draft->mode === 'replace';
@@ -122,12 +132,16 @@ class WeeklyMealPlanController extends Controller
 
             $totals = SnapshotNutrition::aggregate(collect($rows)
                 ->whereNotNull('snapshot')->pluck('snapshot'));
+            foreach ($rows as &$row) {
+                $row['excluded_foods'] = $exclusions->names($row['snapshot'] ?? [], $identities);
+            }
+            unset($row);
             $days[] = compact('date', 'rows', 'totals');
         }
 
         $typeCount = count(array_unique(array_map(fn ($slot) => WeeklyMealSchedule::typeForSlot($slot), array_keys($draft->slots))));
 
-        return view('weekly-meals.show', compact('draft', 'days', 'typeCount', 'replacing', 'planChanged'));
+        return view('weekly-meals.show', compact('draft', 'days', 'typeCount', 'replacing', 'planChanged', 'previewBlocked'));
     }
 
     public function status(Request $request, int $draft)

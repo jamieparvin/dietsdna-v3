@@ -51,7 +51,7 @@ class MealIdeaBatchGeneratorTest extends TestCase
         $this->assertSame(1, $batch['generation_attempts']);
     }
 
-    public function test_partial_batch_requests_only_missing_options_and_keeps_original_portions(): void
+    public function test_partial_batch_uses_full_permitted_replacement_pool_and_keeps_original_portions(): void
     {
         $first = $this->candidate('Keep me');
         [$batch, $calls] = $this->runGeneration([
@@ -60,18 +60,18 @@ class MealIdeaBatchGeneratorTest extends TestCase
         ]);
         $this->assertCount(3, $batch['ideas']);
         $this->assertSame($first, $batch['ideas'][0]);
-        $this->assertSame(2, $calls[1][1]);
+        $this->assertSame(3, $calls[1][1]);
         $this->assertSame(['Keep me', 'Rejected A', 'Rejected B'], $calls[1][2]);
         $this->assertSame(2, $batch['rejected_count']);
     }
 
-    public function test_two_suitable_ideas_need_only_one_replacement(): void
+    public function test_two_suitable_ideas_still_request_three_replacement_candidates(): void
     {
         [$batch, $calls] = $this->runGeneration([
             [$this->candidate('A'), $this->candidate('B'), $this->candidate('No fat', false)],
             [$this->candidate('C')],
         ]);
-        $this->assertSame(1, $calls[1][1]);
+        $this->assertSame(3, $calls[1][1]);
         $this->assertCount(3, $batch['ideas']);
     }
 

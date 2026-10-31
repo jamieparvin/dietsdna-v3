@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MealPlanEntry;
 use App\Models\SavedMeal;
 use App\Services\Meals\MealIdeaGenerator;
+use App\Services\Meals\MealFoodExclusions;
 use App\Services\Meals\MealPlanSlots;
 use App\Services\Nutrition\NutritionTargetCalculator;
 use App\Services\Nutrition\SnapshotNutrition;
@@ -16,7 +17,8 @@ class MealPlanController extends Controller
 {
     public function index(
         Request $request,
-        NutritionTargetCalculator $calculator
+        NutritionTargetCalculator $calculator,
+        MealFoodExclusions $exclusions
     ) {
         $validated = $request->validate([
             'date' => ['nullable', 'date_format:Y-m-d'],
@@ -65,6 +67,10 @@ class MealPlanController extends Controller
         }
 
         $totals = SnapshotNutrition::aggregate($entries->pluck('snapshot'));
+        $identities = $exclusions->identities($request->user());
+        $excludedFoods = $entries->mapWithKeys(fn ($entry) => [
+            $entry->id => $exclusions->names($entry->snapshot, $identities),
+        ])->all();
 
         $days = [];
 
@@ -103,6 +109,7 @@ class MealPlanController extends Controller
             'days',
             'slots',
             'entries',
+            'excludedFoods',
             'totals',
             'targets'
         ));

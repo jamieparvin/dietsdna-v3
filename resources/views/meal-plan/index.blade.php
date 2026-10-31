@@ -911,6 +911,14 @@
 
                     <div class="pl-slot-body">
 
+                        @if(!empty($excludedFoods[$entry->id]))
+                            <p class="pl-muted" role="status">
+                                <strong>Contains foods you now Dislike:</strong>
+                                {{ implode(', ', $excludedFoods[$entry->id]) }}.
+                                This existing meal is unchanged. Swap or remove it if you want to avoid these foods.
+                            </p>
+                        @endif
+
                         @include('meals.details', [
 
                             'meal' => $entry->snapshot,

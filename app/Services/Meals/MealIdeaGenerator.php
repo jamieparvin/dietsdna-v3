@@ -247,7 +247,7 @@ class MealIdeaGenerator
 
     }
 
-    public function generate(User $user, string $mealType, int $count = 3, array $avoidNames = []): array
+    public function generate(User $user, string $mealType, int $count = 3, array $avoidNames = [], array $replacementFeedback = []): array
 
     {
 
@@ -307,9 +307,9 @@ nut butter may fit. For savoury meals, eligible olive oil, avocado, olives or ot
 
 appropriate catalog foods may fit. These examples are not permission to use a food
 
-missing from the catalog or excluded by the user's choices. Dietary preferences
+missing from the catalog or excluded by the user's choices.
 
-still apply. Naturally fattier protein foods can supply the fat without a separate addition.
+Naturally fattier protein foods can supply the fat without a separate addition.
 
 Include any added fat food and its gram quantity in the ingredient list and actually
 
@@ -340,6 +340,10 @@ The targets are checked within 5% for calories and 10% for EACH macro for these 
 A fruit-and-nut-only snack will not suit a high-protein snack guide: choose an eligible
 protein food too, or another combination that can meet the supplied snack targets.
 Avoid the supplied previous_names when replacing unsuitable or duplicate ideas.
+Use replacement_feedback to correct the rejected combinations, not repeat them.
+Choose suitable protein sources from the eligible catalog, including fish, eggs,
+dairy or plant foods where available. Excluded meat is never a fallback.
+Alternatives must differ in composition or preparation, not just their titles.
 Keep preparation methods consistent with the chosen raw/cooked entries.
 
 Respect the cooking-time preference where practical.
@@ -384,6 +388,7 @@ BRIEF;
 
             'requested_alternatives' => $count,
             'previous_names' => array_values(array_slice($avoidNames, 0, 6)),
+            'replacement_feedback' => array_values(array_slice($replacementFeedback, 0, 3)),
             'portion_guidance' => $this->portionGuidance($context),
             'meal_type' => $mealType,
 

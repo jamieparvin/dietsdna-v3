@@ -382,6 +382,9 @@
                     @elseif(count($batch['ideas']) < 3)
                         The remaining candidates did not pass the portion checks or repeated an option.
                     @endif
+                    @if(count($batch['ideas']) < 3)
+                        No exclusions, macro tolerances or portion limits were relaxed. You can use the checked options below or generate a fresh batch.
+                    @endif
                 </div>
             @endif
 
