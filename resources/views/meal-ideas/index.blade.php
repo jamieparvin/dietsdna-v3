@@ -370,6 +370,9 @@
 
         </section>
 
+        @if(!empty($context['variety_warnings']))
+            <p class="mi-notice" role="status">Protein variety grouping needs review for: {{ implode(', ', $context['variety_warnings']) }}. These foods remain available; unreviewed preparations may be counted separately.</p>
+        @endif
         @if($batch)
             @if(count($batch['ideas']) < 3 || ($batch['generation_attempts'] ?? 1) > 1)
                 <div class="mi-notice" role="status">

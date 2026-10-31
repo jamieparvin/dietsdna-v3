@@ -31,6 +31,9 @@ class MealIdeaBatchGenerator
         $duplicates = 0;
         $replacementUnavailable = false;
         $batch = [];
+        $variety = app(ProteinVariety::class);
+        $catalog = $context['ingredients'] ?? collect();
+        $catalog = $catalog->mapWithKeys(fn ($food) => [$food->id => $food->getAttributes()])->all();
 
         for ($attempt = 0; $attempt < 2 && count($accepted) < 3; $attempt++) {
             $this->assertCurrent($user, $mealType, $context);
@@ -40,7 +43,8 @@ class MealIdeaBatchGenerator
                     ? $this->generator->generate($user, $mealType)
                     // Use the permitted three-candidate request for the last chance,
                     // rather than leave one empty slot dependent on one candidate.
-                    : $this->generator->generate($user, $mealType, 3, $avoid, $feedback);
+                    : $this->generator->generate($user, $mealType, 3, $avoid, $feedback,
+                        $variety->usage(array_map(fn ($idea) => ['snapshot' => $idea], $accepted), $catalog));
             } catch (ValidationException $exception) {
                 // Do not retry transport, provider or schema failures. The only
                 // extra request follows completed candidates failing portion checks.
@@ -66,7 +70,12 @@ class MealIdeaBatchGenerator
             foreach ($raw['ideas'] as $idea) {
                 $avoid[] = $idea['name'];
             }
-            foreach ($checked['ideas'] as $idea) {
+            $remaining = $checked['ideas'];
+            while ($remaining) {
+                $usage = $variety->usage(array_map(fn ($idea) => ['snapshot' => $idea], $accepted), $catalog);
+                usort($remaining, fn ($a, $b) => $variety->score([['snapshot' => $a]], $catalog, $usage)
+                    <=> $variety->score([['snapshot' => $b]], $catalog, $usage));
+                $idea = array_shift($remaining);
                 $key = mb_strtolower(preg_replace('/\s+/u', ' ', trim($idea['name'])));
                 $recipe = $this->recipeKey($idea);
                 if (isset($names[$key]) || ($recipe !== null && isset($recipes[$recipe]))) {

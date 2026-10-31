@@ -93,6 +93,9 @@
     @if($blocked)
         <div class="wm-panel"><p>{{ $blocked }}</p><a href="{{ route('nutrition-profile.edit') }}">View nutrition profile</a></div>
     @else
+        @if(!empty($source['context']['variety_warnings']))
+            <p class="wm-notice" role="status">Protein variety grouping needs review for: {{ implode(', ', $source['context']['variety_warnings']) }}. These foods remain available; unreviewed preparations may be counted separately.</p>
+        @endif
         <section class="wm-panel">
             <h2>Build your week</h2>
             <p class="wm-muted">

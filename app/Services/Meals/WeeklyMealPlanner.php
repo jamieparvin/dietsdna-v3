@@ -3,6 +3,7 @@
 namespace App\Services\Meals;
 
 use App\Models\MealPlanEntry;
+use App\Models\Ingredient;
 use App\Models\SavedMeal;
 use App\Models\User;
 use App\Models\WeeklyMealDraft;
@@ -76,6 +77,9 @@ class WeeklyMealPlanner
             array_keys($draft->slots)
         )));
         $pools = [];
+        $state = $this->planState($draft);
+        $fixed = $draft->mode === 'replace' ? [] : $state['fixed'];
+        $usage = $this->proteinUsage($fixed);
 
         foreach ($types as $type) {
             if ($draft->fresh()->status !== 'generating') {
@@ -84,13 +88,17 @@ class WeeklyMealPlanner
 
             $this->assertCurrent($draft, $user);
             $this->assertReplacementBaseline($draft, $this->planState($draft));
-            $batch = $this->generator->generate($user, $type);
+            $batch = $this->generator->generate($user, $type, 3, [], [], $usage);
             $source = $this->assertCurrent($draft, $user);
 
             $pools[$type] = array_map(
                 fn ($idea) => $this->snapshots->fromIdea($idea, $source['context']['ingredients']),
                 $batch['ideas']
             );
+            $catalog = $source['context']['ingredients']->mapWithKeys(fn ($food) => [$food->id => $food->getAttributes()])->all();
+            foreach (app(ProteinVariety::class)->usage(array_map(fn ($snapshot) => ['snapshot' => $snapshot], $pools[$type]), $catalog) as $key => $count) {
+                $usage[$key] = ($usage[$key] ?? 0) + $count;
+            }
 
             WeeklyMealDraft::query()->whereKey($draft->id)->where('status', 'generating')->update([
                 'generated' => json_encode($pools, JSON_THROW_ON_ERROR),
@@ -179,7 +187,7 @@ class WeeklyMealPlanner
         )->all();
         $proposals = $this->schedule->buildBalanced(
             $draft->start_date->toDateString(), $draft->slots, $pools,
-            $fixed, $catalog, $targets, $this->balancer
+            $fixed, $catalog, $targets, $this->balancer, $this->proteinUsage($fixed)
         );
         foreach ($proposals as &$proposal) {
             $proposal['plan_fingerprint'] = $state['fingerprint'];
@@ -193,6 +201,16 @@ class WeeklyMealPlanner
             'error' => null,
             'completed_types' => count($pools),
         ]);
+    }
+
+    private function proteinUsage(array $rows): array
+    {
+        // Historical foods can now be excluded/inactive but still count towards variety.
+        $ids = collect($rows)->pluck('snapshot.ingredients')->flatten(1)->pluck('ingredient_id')->filter()->unique();
+        $catalog = Ingredient::query()->whereIn('id', $ids)->get()
+            ->mapWithKeys(fn ($food) => [$food->id => $food->getAttributes()])->all();
+
+        return app(ProteinVariety::class)->usage($rows, $catalog);
     }
 
     public function confirm(int $draftId, User $user): array

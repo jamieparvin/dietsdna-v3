@@ -3,8 +3,8 @@
 namespace App\Services\Meals;
 
 use Carbon\CarbonImmutable;
-use InvalidArgumentException;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class WeeklyMealSchedule
 {
@@ -29,7 +29,7 @@ class WeeklyMealSchedule
                     continue;
                 }
                 $pool = array_values($pools[$type] ?? []);
-                if (count($pool) < $occurrences[$type]) {
+                if (! count($pool)) {
                     throw new InvalidArgumentException('Not enough meal options for '.$type.'.');
                 }
                 $proposals[] = [
@@ -40,11 +40,12 @@ class WeeklyMealSchedule
                 ];
             }
         }
+
         return $proposals;
     }
 
     /** Try stored options only: never calls AI or changes an existing planned meal. */
-    public function buildBalanced(string $startDate, array $slots, array $pools, array $fixed, array $catalog, array $targets, MealPortionBalancer $balancer): array
+    public function buildBalanced(string $startDate, array $slots, array $pools, array $fixed, array $catalog, array $targets, MealPortionBalancer $balancer, ?array $proteinUsage = null): array
     {
         $initial = $this->build($startDate, $slots, $pools,
             array_map(fn ($row) => $row['date'].'|'.$row['slot'], $fixed));
@@ -53,12 +54,17 @@ class WeeklyMealSchedule
             $days[$row['date']][] = $row;
         }
         $result = $cache = [];
+        $variety = app(ProteinVariety::class);
+        $usage = $proteinUsage ?? $variety->usage($fixed, $catalog);
         foreach ($days as $date => $day) {
             $dayFixed = array_values(array_filter($fixed, fn ($row) => $row['date'] === $date));
             $attempts = 0;
             $last = null;
             $balanced = null;
-            foreach ($this->candidates($day, $pools) as $candidate) {
+            // Rank the SAME bounded candidate set; preserve every original fallback.
+            $candidates = $this->candidates($day, $pools);
+            usort($candidates, fn ($a, $b) => $variety->score($a, $catalog, $usage) <=> $variety->score($b, $catalog, $usage));
+            foreach ($candidates as $candidate) {
                 if (++$attempts > 24) {
                     break;
                 }
@@ -89,8 +95,12 @@ class WeeklyMealSchedule
                 throw $last ?? ValidationException::withMessages(['week' => $date.': no suitable stored meal combination was available.']);
             }
             array_push($result, ...$balanced);
+            foreach ($variety->usage($balanced, $catalog) as $key => $count) {
+                $usage[$key] = ($usage[$key] ?? 0) + $count;
+            }
         }
         $balancer->assertFits($result, $fixed, $targets);
+
         return $result;
     }
 
@@ -104,7 +114,8 @@ class WeeklyMealSchedule
             $initial[$i] = $found === false ? 0 : $found;
         }
         $combinations = [];
-        $visit = function (int $i, array $choices, array $used) use (&$visit, &$combinations, $day, $options, $initial): void {
+        $required = array_count_values(array_column($day, 'meal_type'));
+        $visit = function (int $i, array $choices, array $used) use (&$visit, &$combinations, $day, $options, $initial, $required): void {
             if ($i === count($day)) {
                 $changes = $distance = 0;
                 foreach ($choices as $index => $choice) {
@@ -112,13 +123,15 @@ class WeeklyMealSchedule
                     $distance += ($choice - $initial[$index] + count($options[$index])) % count($options[$index]);
                 }
                 $combinations[] = ['choices' => $choices, 'changes' => $changes, 'distance' => $distance];
+
                 return;
             }
             $type = $day[$i]['meal_type'];
             foreach ($options[$i] as $choice => $snapshot) {
                 // The same food option cannot occupy two slots of one type today.
                 $identity = hash('sha256', serialize($snapshot));
-                if (isset($used[$type][$identity])) {
+                $distinct = count(array_unique(array_map(fn ($option) => hash('sha256', serialize($option)), $options[$i])));
+                if ($distinct >= $required[$type] && isset($used[$type][$identity])) {
                     continue;
                 }
                 $next = $used;
@@ -136,6 +149,7 @@ class WeeklyMealSchedule
             }
             $candidates[] = $candidate;
         }
+
         return $candidates;
     }
 }
