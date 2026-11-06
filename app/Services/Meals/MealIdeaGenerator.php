@@ -3,22 +3,15 @@
 namespace App\Services\Meals;
 
 use App\Models\Ingredient;
-use App\Services\Nutrition\IngredientPreparation;
-
 use App\Models\User;
-
+use App\Services\Nutrition\IngredientPreparation;
 use App\Services\Nutrition\NutritionTargetCalculator;
-
 use App\Services\Recipes\RecipeGenerator;
-
 use Illuminate\Support\Facades\DB;
-
 use Illuminate\Validation\ValidationException;
 
 class MealIdeaGenerator
-
 {
-
     private const NUTRIENTS = [
 
         'energy_kcal',
@@ -45,12 +38,9 @@ class MealIdeaGenerator
 
         private readonly NutritionTargetCalculator $calculator,
 
-    ) {
-
-    }
+    ) {}
 
     public function context(User $user, string $mealType = 'lunch'): array
-
     {
 
         // Re-read the profile so changes are not hidden by a loaded relation.
@@ -185,7 +175,7 @@ class MealIdeaGenerator
             $varietyCatalog, fn ($food) => ($variety->food($food)['reviewed'] ?? true) === false
         )));
 
-        $allocation = (new MealTargetAllocator())->allocate(
+        $allocation = (new MealTargetAllocator)->allocate(
 
             $targets,
 
@@ -214,6 +204,7 @@ class MealIdeaGenerator
             'snack_count' => $snackCount,
 
             'cooking_minutes' => $profile->cooking_minutes,
+            ...($profile->cooking_minutes !== null ? ['time_policy' => MealPreparationTime::VERSION] : []),
 
             'meal_type' => $selectedType,
 
@@ -258,7 +249,6 @@ class MealIdeaGenerator
     }
 
     public function generate(User $user, string $mealType, int $count = 3, array $avoidNames = [], array $replacementFeedback = [], array $proteinUsage = []): array
-
     {
 
         if ($count < 1 || $count > 3) {
@@ -350,6 +340,11 @@ Do not claim that calories or macros match exactly.
 Use between 2 and 12 ingredients per alternative.
 
 Use the per-ingredient maximum quantities supplied in portion_guidance.
+Two full meals can each need close to half the daily budget. If one eligible protein,
+carbohydrate or fat food cannot supply its share within its cap, combine multiple
+suitable eligible sources within the SAME meal. Never enlarge caps or add meal slots.
+Do not duplicate one food in different preparations to bypass a cap. Prefer
+complementary ordinary foods rather than multiple oils.
 The complete meal must weigh at most 1,100 g; a snack at most 500 g.
 Choose starting quantities already close to the targets. Later adjustment is bounded
 between one-quarter and three times each starting quantity, subject to food caps.
@@ -366,7 +361,7 @@ dairy or plant foods where available. Excluded meat is never a fallback.
 Alternatives must differ in composition or preparation, not just their titles.
 Keep preparation methods consistent with the chosen raw/cooked entries.
 
-Respect the cooking-time preference where practical.
+Use time_available_per_meal_minutes for the combined preparation AND cooking estimate, not cooking alone. Never claim this time is verified.
 
 Do not make medical, allergy-safe or health-outcome claims.
 
@@ -421,6 +416,7 @@ BRIEF;
             'meal_type' => $mealType,
 
             'cooking_minutes_preference' => $context['cooking_minutes'],
+            'time_available_per_meal_minutes' => $context['cooking_minutes'],
 
             'meal_targets' => $context['meal_targets'],
 
@@ -430,15 +426,9 @@ BRIEF;
 
         ], JSON_THROW_ON_ERROR);
 
-        $drafts = $this->generator->generate(
-
-            $context['ingredients'],
-
-            $count,
-
-            $brief
-
-        );
+        $drafts = $context['cooking_minutes'] === null
+            ? $this->generator->generate($context['ingredients'], $count, $brief)
+            : $this->generator->generate($context['ingredients'], $count, $brief, true);
 
         // Discard the result if preferences, targets or ingredients changed.
 
@@ -541,6 +531,10 @@ BRIEF;
             $ideas[] = [
 
                 'name' => $draft['name'],
+                ...(MealPreparationTime::total($draft) !== null ? [
+                    'estimated_prep_minutes' => (int) $draft['estimated_prep_minutes'],
+                    'estimated_cook_minutes' => (int) $draft['estimated_cook_minutes'],
+                ] : []),
 
                 'description' => $draft['description'],
 
@@ -550,9 +544,7 @@ BRIEF;
 
                 'totals' => $totals,
 
-                'calorie_difference' =>
-
-                    $totals['energy_kcal']
+                'calorie_difference' => $totals['energy_kcal']
 
                     - $context['meal_targets']['energy_kcal'],
 
@@ -586,11 +578,15 @@ BRIEF;
                     $food->carbohydrate_g >= 50 && $food->fat_g < 20 => 150,
                     default => 400,
                 };
+
                 return [
                     'ingredient_id' => (int) $food->id,
                     'max_quantity_g' => $cap,
                     'estimated_available_carbohydrate_g_per_100g' => max(0, (float) $food->carbohydrate_g - (float) $food->fibre_g),
                     'protein_g_at_max_quantity' => (float) $food->protein_g * $cap / 100,
+                    'available_carbohydrate_g_at_max_quantity' => max(0, (float) $food->carbohydrate_g - (float) $food->fibre_g) * $cap / 100,
+                    'fat_g_at_max_quantity' => (float) $food->fat_g * $cap / 100,
+                    'energy_kcal_at_max_quantity' => (float) $food->energy_kcal * $cap / 100,
                 ];
             })->values()->all(),
         ];
@@ -603,15 +599,12 @@ BRIEF;
     }
 
     private function fail(string $message): never
-
     {
 
         throw ValidationException::withMessages([
-
             'generation' => $message,
 
         ]);
 
     }
-
 }

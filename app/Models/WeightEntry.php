@@ -16,7 +16,7 @@ class WeightEntry extends Model
     {
         return [
             'recorded_on' => 'date',
-            'weight_kg' => 'decimal:2',
+            'weight_kg' => 'decimal:9',
         ];
     }
 

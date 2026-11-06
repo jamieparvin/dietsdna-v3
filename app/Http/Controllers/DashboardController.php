@@ -4,22 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\MealPlanEntry;
 use App\Models\SavedMeal;
+use App\Models\WeeklyMealDraft;
 use App\Services\Meals\MealPlanSlots;
-use App\Services\Nutrition\NutritionTargetCalculator;
+use App\Services\Nutrition\BodyMassIndex;
 use App\Services\Nutrition\SnapshotNutrition;
+use App\Services\Onboarding;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, NutritionTargetCalculator $calculator): View
+    public function __invoke(Request $request, Onboarding $onboarding): View
     {
         $user = $request->user();
+        $setup = $onboarding->state($user);
+        if (! $setup['complete'] || ! MealPlanEntry::where('user_id', $user->id)->exists()) {
+            $preview = $setup['complete'] ? WeeklyMealDraft::where('user_id', $user->id)->whereIn('status', ['queued', 'generating', 'ready'])->latest('id')->first() : null;
+
+            return view('onboarding', compact('setup', 'preview'));
+        }
         $today = CarbonImmutable::now('Europe/London')->startOfDay();
         $date = $today->toDateString();
         $profile = $user->nutritionProfile()->first();
-        $targets = $calculator->calculate($profile);
+        $targets = $setup['targets'];
+        $bmi = app(BodyMassIndex::class)->forProgress($user);
         $slots = MealPlanSlots::forCount((int) $profile?->meals_per_day, (int) ($profile?->snacks_per_day ?? 0));
         $weekStart = $today->startOfWeek(1);
         // An exclusive next-Monday bound includes all Sunday date/datetime values.
@@ -53,6 +62,7 @@ class DashboardController extends Controller
             $guide = $metric['target'] !== null && ($targets['status'] ?? null) === 'ready' ? SnapshotNutrition::number($targets[$metric['target']] ?? null) : null;
             $planned = $totals[$metric['key']];
             $percent = $planned !== null && $guide !== null && $guide > 0 ? 100 * $planned / $guide : null;
+
             return $metric + compact('guide', 'planned', 'percent');
         }, $definitions);
         $weekDays = [];
@@ -65,7 +75,8 @@ class DashboardController extends Controller
         $patternCount = count(MealPlanSlots::forCount((int) $profile?->meals_per_day, (int) ($profile?->snacks_per_day ?? 0)));
         $plannedCount = $entries->count();
         $weekPlannedDays = collect($weekDays)->where('count', '>', 0)->count();
+
         return view('dashboard', compact('today', 'date', 'profile', 'targets', 'rows', 'totals',
-            'metrics', 'weekDays', 'weekStart', 'savedCount', 'patternCount', 'currentFilled', 'plannedCount', 'weekPlannedDays'));
+            'metrics', 'weekDays', 'weekStart', 'savedCount', 'patternCount', 'currentFilled', 'plannedCount', 'weekPlannedDays', 'setup', 'bmi'));
     }
 }

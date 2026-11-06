@@ -3,18 +3,20 @@
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\IngredientController;
 use App\Http\Controllers\Admin\IngredientImportController;
+use App\Http\Controllers\Admin\NutritionCalculatorSettingsController;
 use App\Http\Controllers\Admin\RecipeController;
 use App\Http\Controllers\Admin\RecipeGenerationController;
-use App\Http\Controllers\Admin\NutritionCalculatorSettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FoodPreferenceController;
-use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\MealIdeaController;
+use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\NutritionProfileController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\SavedMealController;
 use App\Http\Controllers\ShoppingListController;
+use App\Http\Middleware\EnsureSetupComplete;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Support\Facades\Route;
 
@@ -28,8 +30,7 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        
-    
+
         Route::get('/', AdminDashboardController::class)
             ->name('dashboard');
 
@@ -81,9 +82,10 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])
             NutritionCalculatorSettingsController::class,
             'update',
         ])->name('calculator-settings.update');
-    });    
+    });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/setup', OnboardingController::class)->name('setup');
     Route::get('/nutrition-profile', [NutritionProfileController::class, 'edit'])
         ->name('nutrition-profile.edit');
 
@@ -96,51 +98,55 @@ Route::middleware('auth')->group(function () {
     Route::put('/food-preferences', [FoodPreferenceController::class, 'update'])
         ->name('food-preferences.update');
 
-    Route::get('/meal-ideas', [MealIdeaController::class, 'index'])
-        ->name('meal-ideas.index');
-
-    Route::post('/meal-ideas', [MealIdeaController::class, 'store'])
-        ->middleware('throttle:3,1')
-        ->name('meal-ideas.store');
-    
-    Route::get('/saved-meals', [SavedMealController::class, 'index'])
-        ->name('saved-meals.index');
-
-    Route::post('/saved-meals', [SavedMealController::class, 'store'])
-        ->name('saved-meals.store');
-
-    Route::get('/meal-plan', [MealPlanController::class, 'index'])
-        ->name('meal-plan.index');
-
-    Route::get('/progress', [ProgressController::class, 'index'])
-        ->name('progress.index');
-
-    Route::post('/progress', [ProgressController::class, 'store'])
-        ->name('progress.store');
-
-    Route::put('/progress/{entry}', [ProgressController::class, 'update'])
-        ->whereNumber('entry')
-        ->name('progress.update');
-
-    Route::delete('/progress/{entry}', [ProgressController::class, 'destroy'])
-        ->whereNumber('entry')
-        ->name('progress.destroy');
-
-    Route::get('/shopping-list', [ShoppingListController::class, 'index'])
-        ->name('shopping-list.index');
-
-    Route::put('/shopping-list', [ShoppingListController::class, 'update'])
-        ->name('shopping-list.update');
-
-    Route::post('/meal-plan', [MealPlanController::class, 'store'])
-        ->name('meal-plan.store');
-
-    Route::delete('/meal-plan/{entry}', [MealPlanController::class, 'destroy'])
-        ->whereNumber('entry')
-        ->name('meal-plan.destroy');
-
-    require __DIR__.'/meal-planning.php';
     require __DIR__.'/macro-preferences.php';
-    require __DIR__.'/week-actions.php';
-    require __DIR__.'/saved-meal-actions.php';
+
+    Route::middleware(EnsureSetupComplete::class)->group(function () {
+        Route::get('/meal-ideas', [MealIdeaController::class, 'index'])
+            ->name('meal-ideas.index');
+
+        Route::post('/meal-ideas', [MealIdeaController::class, 'store'])
+            ->middleware('throttle:3,1')
+            ->name('meal-ideas.store');
+
+        Route::get('/saved-meals', [SavedMealController::class, 'index'])
+            ->name('saved-meals.index');
+
+        Route::post('/saved-meals', [SavedMealController::class, 'store'])
+            ->name('saved-meals.store');
+
+        Route::get('/meal-plan', [MealPlanController::class, 'index'])
+            ->name('meal-plan.index');
+
+        Route::get('/progress', [ProgressController::class, 'index'])
+            ->name('progress.index');
+
+        Route::post('/progress', [ProgressController::class, 'store'])
+            ->name('progress.store');
+
+        Route::put('/progress/{entry}', [ProgressController::class, 'update'])
+            ->whereNumber('entry')
+            ->name('progress.update');
+
+        Route::delete('/progress/{entry}', [ProgressController::class, 'destroy'])
+            ->whereNumber('entry')
+            ->name('progress.destroy');
+
+        Route::get('/shopping-list', [ShoppingListController::class, 'index'])
+            ->name('shopping-list.index');
+
+        Route::put('/shopping-list', [ShoppingListController::class, 'update'])
+            ->name('shopping-list.update');
+
+        Route::post('/meal-plan', [MealPlanController::class, 'store'])
+            ->name('meal-plan.store');
+
+        Route::delete('/meal-plan/{entry}', [MealPlanController::class, 'destroy'])
+            ->whereNumber('entry')
+            ->name('meal-plan.destroy');
+
+        require __DIR__.'/meal-planning.php';
+
+        require __DIR__.'/week-actions.php';
+        require __DIR__.'/saved-meal-actions.php';
+    });
 });

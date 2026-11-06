@@ -357,13 +357,8 @@
         </div>
     </header>
 
-    @if($errors->any())
-        <div class="wm-notice wm-error" role="alert">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
+    @include('partials.food-allergy-notice')
+    @include('partials.nutrition-estimate-disclaimer')
 
     @if(in_array($draft->status, ['queued', 'generating'], true))
         <section class="wm-panel">
@@ -387,6 +382,9 @@
                 and return later to check your progress.
             </p>
 
+            @if($draft->completed_types >= $typeCount)
+                <p class="wm-muted">Checking portions and refining meal combinations.</p>
+            @endif
             <form
                 method="POST"
                 action="{{ route('weekly-meals.cancel', $draft->id) }}"
@@ -410,9 +408,10 @@
         </div>
 
         <p class="wm-muted">
-            The request was not automatically retried.
+            No further generation is running for this preview.
             Existing planned meals were not changed.
         </p>
+        <a class="wm-button" href="{{ route('weekly-meals.create', ['date' => $draft->start_date->toDateString()]) }}">Try a new weekly preview</a>
 
     @elseif($draft->status === 'cancelled')
         <div class="wm-notice">
@@ -563,6 +562,7 @@
                                     @php($meal = $row['snapshot'])
 
                                     <h3>{{ $meal['name'] }}</h3>
+                                    @include('partials.meal-time')
 
                                     <div class="wp-macros">
                                         <span>

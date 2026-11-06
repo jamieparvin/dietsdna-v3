@@ -112,6 +112,10 @@
 .dn-profile div.dn-pattern-row {flex-wrap:wrap;gap:6px 14px;}
 .dn-profile .dn-pattern-row dd {white-space:nowrap;margin-left:auto;}
 
+.dn-progress-measures {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:16px;align-items:start;}
+.dn-progress-measures .dn-goal {min-width:0;}
+.dn-progress-measures .dn-eyebrow {display:block;min-height:3em;}
+@media(max-width:600px) {.dn-progress-measures {grid-template-columns:1fr;}}
 </style>
 <div class="dn-home">
     <section class="dn-hero" aria-labelledby="dn-welcome">
@@ -142,7 +146,7 @@
 
         <section class="dn-notice" aria-labelledby="dn-setup-title">
             <div>
-<h2 id="dn-setup-title">{{ ($targets['status'] ?? '') === 'review' ? 'Your nutrition guide needs a review' : 'Set your daily nutrition guide' }}</h2>
+<h2 id="dn-setup-title">{{ ($targets['status'] ?? '') === 'review' ? 'Automatic planning unavailable' : 'Set your daily nutrition guide' }}</h2>
 <p>{{ $targets['message'] }}</p>
 </div>
             <a class="dn-button dn-button-outline" href="{{ route('nutrition-profile.edit') }}">{{ $profile ? 'Review profile' : 'Set up profile' }}</a>
@@ -154,6 +158,7 @@
 <h2>Your daily nutrition</h2>
 <a href="{{ route('nutrition-profile.edit') }}">View calculations &amp; adjust macros →</a>
 </div>
+    @include('partials.nutrition-estimate-disclaimer')
     <section class="dn-metrics" aria-label="Daily targets and planned nutrition">
         
 @foreach($dashboardMetrics as $metric)
@@ -341,7 +346,7 @@ aria-current="date"
                     </div>
                     <div>
 <dt>Profile weight</dt>
-<dd>{{ $profile?->weight_kg === null ? 'Not set' : number_format((float) $profile->weight_kg, 1).' kg' }}</dd>
+<dd>{{ $profile?->weight_kg === null ? 'Not set' : \App\Services\Nutrition\WeightUnits::format($profile->weight_kg).' lbs' }}</dd>
 </div>
                     <div>
 <dt>Ingredient choices</dt>
@@ -357,12 +362,14 @@ aria-current="date"
                     @php
             $progressFirst = auth()->user()
                 ->weightEntries()
+                ->where('recorded_on', '<', $today->addDay()->toDateString())
                 ->orderBy('recorded_on')
                 ->orderBy('id')
                 ->first();
 
             $progressLatest = auth()->user()
                 ->weightEntries()
+                ->where('recorded_on', '<', $today->addDay()->toDateString())
                 ->orderByDesc('recorded_on')
                 ->orderByDesc('id')
                 ->first();
@@ -384,32 +391,49 @@ aria-current="date"
                 </span>
             </div>
 
-            @if($progressLatest)
-                <div class="dn-goal">
-                    <span class="dn-eyebrow">Latest recorded weight</span>
+            <div class="dn-progress-measures">
+                @if($progressLatest)
+                    <div class="dn-goal">
+                        <span class="dn-eyebrow">Latest recorded weight</span>
 
-                    <h3 style="font-size:30px;margin-bottom:6px;">
-                        {{ number_format((float) $progressLatest->weight_kg, 2) }}
-                        <small style="font-size:14px;font-weight:500;">kg</small>
-                    </h3>
+                        <h3 style="font-size:30px;margin-bottom:6px;">
+                            {{ \App\Services\Nutrition\WeightUnits::format($progressLatest->weight_kg) }}
+                            <small style="font-size:14px;font-weight:500;">lbs</small>
+                        </h3>
 
-                    <p class="dn-muted" style="margin:0;">
-                        {{ $progressLatest->recorded_on->format('j F Y') }}
-                    </p>
+                        <p class="dn-muted" style="margin:0;">
+                            {{ $progressLatest->recorded_on->format('j F Y') }}
+                        </p>
+                    </div>
+                @else
+                    <div class="dn-goal">
+                        <h3 style="margin-bottom:8px;">Start your weight history</h3>
+
+                        <p class="dn-muted" style="margin:0;">
+                            Record your first weigh-in to track changes towards your goal.
+                        </p>
+                    </div>
+                @endif
+                <div class="dn-goal" aria-label="Latest BMI">
+                    <span class="dn-eyebrow">Latest BMI</span>
+                    <h3 data-bmi-value style="font-size:30px;margin-bottom:6px;">{{ $bmi['value'] === null ? 'Not available' : number_format($bmi['value'], 1) }}</h3>
                 </div>
+            </div>
+            @include('partials.bmi-context')
 
+            @if($progressLatest)
                 <dl class="dn-profile">
                     <div>
                         <dt>Starting weight</dt>
                         <dd>
-                            {{ number_format((float) $progressFirst->weight_kg, 2) }} kg
+                            {{ \App\Services\Nutrition\WeightUnits::format($progressFirst->weight_kg) }} lbs
                         </dd>
                     </div>
 
                     <div>
                         <dt>Change since first entry</dt>
                         <dd>
-                            {{ $progressChange > 0 ? '+' : '' }}{{ number_format($progressChange, 2) }} kg
+                            {{ $progressChange > 0 ? '+' : '' }}{{ \App\Services\Nutrition\WeightUnits::format($progressChange) }} lbs
                         </dd>
                     </div>
 
@@ -418,7 +442,7 @@ aria-current="date"
                         <dd>
                             {{ $progressTarget === null
                                 ? 'Not set'
-                                : number_format((float) $progressTarget, 2).' kg' }}
+                                : \App\Services\Nutrition\WeightUnits::format($progressTarget).' lbs' }}
                         </dd>
                     </div>
                 </dl>
@@ -427,14 +451,6 @@ aria-current="date"
                     View progress &amp; record weight →
                 </a>
             @else
-                <div class="dn-goal">
-                    <h3 style="margin-bottom:8px;">Start your weight history</h3>
-
-                    <p class="dn-muted" style="margin:0;">
-                        Record your first weigh-in to track changes towards your goal.
-                    </p>
-                </div>
-
                 <a
                     class="dn-profile-link"
                     href="{{ route('progress.index') }}#weight-entry-form"
@@ -477,6 +493,6 @@ aria-current="date"
 <p>Choose foods you like and dislike to shape future meal ideas.</p>
 </a>
     </nav>
-    <p class="dn-footer">Nutrition figures are starting estimates. Updating your profile changes your guide; meals already in your plan keep their saved portions.</p>
+    <p class="dn-footer">Updating your profile changes your targets; meals already in your plan keep their saved portions.</p>
 </div>
 @endsection

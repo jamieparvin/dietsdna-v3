@@ -1,0 +1,1 @@
+<p class="guidance-estimate">Your calorie and macro targets are estimates based on the information you provide. They are a starting point for meal planning, rather than a medical assessment or a guarantee of results.</p>

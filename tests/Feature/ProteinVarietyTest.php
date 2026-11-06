@@ -119,7 +119,7 @@ class ProteinVarietyTest extends TestCase
         $this->assertContains($this->foods[3]->name, $context['variety_warnings']);
         $groups = app(ProteinVariety::class)->guidance($context['variety_catalog'], 'lunch', []);
         $this->assertNotContains($this->foods[2]->id, collect($groups)->pluck('ingredient_ids')->flatten()->all());
-        $this->get(route('weekly-meals.create'))->assertOk()->assertSee('Protein variety grouping needs review for:');
+        $this->get(route('weekly-meals.create'))->assertOk()->assertSee('The food library needs a variety review for:');
         $this->get(route('meal-ideas.index'))->assertOk()->assertSee('Protein variety grouping needs review for:');
         $this->assertSame('excluded', DB::table('user_food_preferences')->where('user_id', $this->owner->id)
             ->where('food_key', $this->foods[2]->preferenceFoodKey())->value('preference'));

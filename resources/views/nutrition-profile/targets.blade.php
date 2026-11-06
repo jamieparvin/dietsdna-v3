@@ -20,6 +20,7 @@
         </p>
         <a href="#macro-targets">See how these are calculated and adjust your split</a>
     @else
+        @if(($targets['status'] ?? '') === 'review')<p><strong>Automatic planning unavailable</strong></p>@endif
         <p class="pf-note">{{ $targets['message'] ?? 'Complete your profile to see your starting guides.' }}</p>
         @if(($profile?->macro_mode ?? 'goal') === 'custom')
             <a href="#macro-targets">Review your macro preferences</a>

@@ -302,6 +302,9 @@
 
             </div>
 
+            @if(($context['cooking_minutes'] ?? null) !== null)
+                <p class="mi-small">Time available per meal: {{ $context['cooking_minutes'] }} minutes including preparation and cooking. Suggested times are AI estimates, not verified limits.</p>
+            @endif
             <form
 
                 id="meal-idea-form"
@@ -358,7 +361,7 @@
 
                 Generation uses your configured AI account and may take up to two minutes.
 
-                We aim to show three suitable alternatives. If some fail the portion check, one extra AI request may be made for replacements. Only checked options are shown. Refreshing this page does not generate again.
+                We aim to show three suitable alternatives. If some fail portion or estimated-time checks, one extra AI request may be made for replacements. Only checked options are shown. Refreshing this page does not generate again.
 
             </p>
 
@@ -416,6 +419,7 @@
                         <h2>{{ $idea['name'] }}</h2>
 
                         <p class="mi-description">{{ $idea['description'] }}</p>
+                        @include('partials.meal-time', ['meal' => $idea])
 
                         <div class="mi-energy">
 

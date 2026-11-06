@@ -26,7 +26,7 @@ class HistoricalNutritionDisplayTest extends TestCase
         parent::setUp();
         Http::preventStrayRequests();
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-26 12:00:00', 'Europe/London'));
-        $this->owner = User::factory()->create();
+        $this->owner = User::factory()->create(['food_preferences_reviewed_at' => now()]);
         $this->owner->nutritionProfile()->create(['meals_per_day' => 3, 'snacks_per_day' => 0]);
         $this->mock(NutritionTargetCalculator::class, function ($mock) {
             $mock->shouldReceive('calculate')->andReturn(['status' => 'ready', 'calories_kcal' => 2000,
@@ -201,7 +201,8 @@ class HistoricalNutritionDisplayTest extends TestCase
     public function test_zero_meals_and_empty_days_remain_distinct_and_render_zero_totals(): void
     {
         $draft = $this->draft();
-        foreach ([route('dashboard'), route('meal-plan.index'), route('weekly-meals.show', $draft)] as $url) {
+        $this->get(route('dashboard'))->assertOk()->assertViewIs('onboarding')->assertSee('Your setup is complete');
+        foreach ([route('meal-plan.index'), route('weekly-meals.show', $draft)] as $url) {
             $response = $this->get($url)->assertOk();
             $data = $response->original->getData();
             $totals = $data['totals'] ?? $data['days'][0]['totals'];

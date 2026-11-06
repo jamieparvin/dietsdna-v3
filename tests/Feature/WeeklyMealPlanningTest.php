@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\EnsureSetupComplete;
 use App\Jobs\GenerateWeeklyMealDraft;
 use App\Models\Ingredient;
 use App\Models\MealPlanEntry;
@@ -9,6 +10,7 @@ use App\Models\SavedMeal;
 use App\Models\User;
 use App\Models\WeeklyMealDraft;
 use App\Services\Meals\MealIdeaGenerator;
+use App\Services\Meals\MealPortionBalancer;
 use App\Services\Meals\PlannedMealSnapshot;
 use App\Services\Meals\WeeklyMealPlanner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,7 +25,9 @@ class WeeklyMealPlanningTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+
     private int $generationCalls = 0;
+
     private $ingredients;
 
     // Refuse migrations unless this suite is using disposable in-memory SQLite.
@@ -37,6 +41,8 @@ class WeeklyMealPlanningTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // This suite exercises meal behavior with minimal profiles; onboarding has its own route coverage.
+        $this->withoutMiddleware(EnsureSetupComplete::class);
         Http::preventStrayRequests();
         $this->owner = User::factory()->create();
         $this->owner->nutritionProfile()->create(['meals_per_day' => 3, 'snacks_per_day' => 2]);
@@ -66,6 +72,7 @@ class WeeklyMealPlanningTest extends TestCase
             ]);
             $mock->shouldReceive('generate')->andReturnUsing(function ($user, $type) {
                 $this->generationCalls++;
+
                 return ['ideas' => [$this->idea($type.'-1'), $this->idea($type.'-2'), $this->idea($type.'-3')]];
             });
         });
@@ -87,6 +94,7 @@ class WeeklyMealPlanningTest extends TestCase
     {
         $helper = app(PlannedMealSnapshot::class);
         $snapshot = $helper->fromIdea($this->idea($name), $this->ingredients);
+
         return SavedMeal::query()->create(['user_id' => $user->id, 'content_hash' => $helper->hash($snapshot), 'meal_type' => 'lunch', 'snapshot' => $snapshot]);
     }
 
@@ -101,6 +109,7 @@ class WeeklyMealPlanningTest extends TestCase
     private function draft(): WeeklyMealDraft
     {
         $source = app(WeeklyMealPlanner::class)->source($this->owner);
+
         return WeeklyMealDraft::query()->create([
             'user_id' => $this->owner->id, 'start_date' => '2026-10-26', 'status' => 'queued',
             'source_signature' => $source['signature'], 'meal_count' => 5, 'slots' => $source['slots'],
@@ -165,7 +174,7 @@ class WeeklyMealPlanningTest extends TestCase
         $other = User::factory()->create();
         $other->nutritionProfile()->create(['meals_per_day' => 5, 'snacks_per_day' => 0]);
         $this->actingAs($this->owner)->put(route('nutrition-profile.update'), ['snacks_per_day' => 1])
-            ->assertRedirect(route('nutrition-profile.edit'));
+            ->assertRedirect(route('setup'));
         $this->assertSame(1, $this->owner->nutritionProfile()->first()->snacks_per_day);
         $this->assertSame(0, $other->nutritionProfile()->first()->snacks_per_day);
     }
@@ -216,6 +225,7 @@ class WeeklyMealPlanningTest extends TestCase
             }
         }
         $draft->update(['status' => 'failed', 'generated' => $pools, 'error' => 'Old amount error']);
+
         return $draft->fresh();
     }
 
@@ -317,11 +327,11 @@ class WeeklyMealPlanningTest extends TestCase
         (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
         $draft->refresh();
         $this->assertSame('ready', $draft->status);
-        app(\App\Services\Meals\MealPortionBalancer::class)->assertFits($draft->proposals, [], [
+        app(MealPortionBalancer::class)->assertFits($draft->proposals, [], [
             'calories_kcal' => 500, 'protein_g' => 50, 'carbohydrate_g' => 40, 'fat_g' => 10,
         ]);
         foreach ($draft->proposals as $proposal) {
-            $this->assertSame(\App\Services\Meals\MealPortionBalancer::VERSION, $proposal['snapshot']['portion_balance']['version']);
+            $this->assertSame(MealPortionBalancer::VERSION, $proposal['snapshot']['portion_balance']['version']);
         }
     }
 

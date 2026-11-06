@@ -97,6 +97,9 @@ class MealIdeaBatchGenerator
 
         $this->assertCurrent($user, $mealType, $context);
         if (! $accepted) {
+            if (($context['cooking_minutes'] ?? null) !== null && collect($rejectionDetails)->contains(fn ($row) => str_contains($row['reason'], 'estimated preparation and cooking time'))) {
+                $this->fail('No ideas matched your '.$context['cooking_minutes'].'-minute preparation and cooking preference within the portion limits after one replacement attempt. Try different ideas, or review this preference if you have more time. Your saved meals and plan have not changed. Times are AI estimates, not verified limits.');
+            }
             $this->fail('No ideas met this meal’s calorie and macro guide within the portion limits after one replacement attempt. Your previous ideas and saved meals have not changed. Try different meal ideas or review your eligible food choices.');
         }
 

@@ -6,7 +6,7 @@
 @php
     $formatWeight = fn ($value) => $value === null
         ? '—'
-        : number_format($value, 2);
+        : \App\Services\Nutrition\WeightUnits::format($value);
 
     $chartWidth = 800;
     $chartHeight = 260;
@@ -165,7 +165,7 @@
                 Starting weight
             </div>
             <strong class="pr-value">
-                {{ $formatWeight($startingWeight) }} <small>kg</small>
+                {{ $formatWeight($startingWeight) }} <small>lbs</small>
             </strong>
             <span class="pr-caption">
                 {{ $firstEntry
@@ -180,7 +180,7 @@
                 Latest weight
             </div>
             <strong class="pr-value">
-                {{ $formatWeight($latestWeight) }} <small>kg</small>
+                {{ $formatWeight($latestWeight) }} <small>lbs</small>
             </strong>
             <span class="pr-caption">
                 {{ $latestEntry
@@ -196,7 +196,7 @@
             </div>
             <strong class="pr-value">
                 {{ $weightChange !== null && $weightChange > 0 ? '+' : '' }}{{ $formatWeight($weightChange) }}
-                <small>kg</small>
+                <small>lbs</small>
             </strong>
             <span class="pr-caption">Since your first recorded entry</span>
         </article>
@@ -207,11 +207,11 @@
                 Target weight
             </div>
             <strong class="pr-value">
-                {{ $formatWeight($targetWeight) }} <small>kg</small>
+                {{ $formatWeight($targetWeight) }} <small>lbs</small>
             </strong>
             <span class="pr-caption">
                 @if($remainingWeight !== null)
-                    {{ $formatWeight($remainingWeight) }} kg difference from target
+                    {{ $formatWeight($remainingWeight) }} lbs difference from target
                 @elseif($targetWeight !== null)
                     From your nutrition profile
                 @else
@@ -220,6 +220,8 @@
             </span>
         </article>
     </section>
+
+    @include('partials.bmi-summary')
 
     <div class="pr-main">
         <section class="pr-panel">
@@ -249,16 +251,17 @@
                     aria-labelledby="weight-chart-title weight-chart-description"
                 >
                     <title id="weight-chart-title">
-                        Recorded weight over the last {{ $days }} days
+                        Recorded weight (lbs) over the last {{ $days }} days
                     </title>
 
                     <desc id="weight-chart-description">
-                        {{ count($dots) }} recorded measurements.
+                        Weight in lbs. {{ count($dots) }} recorded measurements.
                         @foreach($dots as $dot)
-                            {{ $dot['date'] }}: {{ number_format($dot['weight'], 2) }} kilograms.
+                            {{ $dot['date'] }}: {{ number_format($dot['weight'], 1) }} pounds (lbs).
                         @endforeach
                     </desc>
 
+                    <text x="{{ $left }}" y="16">Weight (lbs)</text>
                     @foreach($ticks as $tick)
                         <line
                             x1="{{ $left }}"
@@ -295,7 +298,7 @@
                             stroke-width="2"
                         >
                             <title>
-                                {{ $dot['date'] }} · {{ number_format($dot['weight'], 2) }} kg
+                                {{ $dot['date'] }} · {{ number_format($dot['weight'], 1) }} lbs
                             </title>
                         </circle>
                     @endforeach
@@ -307,6 +310,7 @@
                         {{ \Carbon\CarbonImmutable::parse($chartPoints[0]['date'])->format('j M Y') }}
                     </text>
 
+                    <text x="{{ $chartWidth / 2 }}" y="{{ $chartHeight - 10 }}" text-anchor="middle">Date</text>
                     @if(count($chartPoints) > 1)
                         <text
                             x="{{ $chartWidth - $right }}"
@@ -319,9 +323,9 @@
                 </svg>
 
                 <p class="pr-note">
-                    Weight in kilograms. Points show recorded measurements;
+                    Weight in pounds (lbs). Points show recorded measurements;
                     the connecting line does not represent measurements between entries.
-                    Summary cards use your full recorded history.
+                    Summary cards use your recorded history up to today.
                 </p>
             @else
                 <div class="pr-empty">
@@ -366,17 +370,17 @@
                 </div>
 
                 <div class="pr-field">
-                    <label for="weight_kg">Weight (kg)</label>
+                    <label for="weight_lbs">Weight (lbs)</label>
                     <input
-                        id="weight_kg"
+                        id="weight_lbs"
                         type="number"
-                        name="weight_kg"
-                        value="{{ old('weight_kg', $editingEntry?->weight_kg) }}"
-                        min="20"
-                        max="500"
-                        step="0.01"
+                        name="weight_lbs"
+                        value="{{ \App\Services\Nutrition\WeightUnits::oldInput('weight_lbs', 'weight_kg', $editingEntry?->weight_kg) }}"
+                        min="{{ \App\Services\Nutrition\WeightUnits::inputLimit(20) }}"
+                        max="{{ \App\Services\Nutrition\WeightUnits::inputLimit(500) }}"
+                        step="any"
                         inputmode="decimal"
-                        placeholder="e.g. 90.00"
+                        placeholder="e.g. 180.0"
                         required
                     >
                 </div>
@@ -422,7 +426,7 @@
                         </time>
 
                         <span class="pr-history-weight">
-                            {{ number_format($entry->weight_kg, 2) }} kg
+                            {{ \App\Services\Nutrition\WeightUnits::format($entry->weight_kg) }} lbs
                         </span>
                     </div>
 

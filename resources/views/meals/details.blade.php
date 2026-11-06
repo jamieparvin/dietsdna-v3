@@ -1,6 +1,7 @@
 <h3>{{ $meal['name'] }}</h3>
 
 <p class="mp-muted">{{ $meal['description'] }}</p>
+@include('partials.meal-time')
 
 <div class="mp-nutrition">
     {{ \App\Services\Nutrition\SnapshotNutrition::format($meal['totals']['energy_kcal'] ?? null, 0) }} kcal

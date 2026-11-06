@@ -6,7 +6,6 @@ use App\Http\Controllers\DashboardController;
 use App\Models\MealPlanEntry;
 use App\Models\SavedMeal;
 use App\Models\User;
-use App\Services\Meals\MealPlanSlots;
 use App\Services\Nutrition\NutritionTargetCalculator;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,7 +18,9 @@ class DashboardTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+
     private array $guide;
+
     private array $calculatedProfiles = [];
 
     protected function beforeRefreshingDatabase(): void
@@ -34,13 +35,14 @@ class DashboardTest extends TestCase
         parent::setUp();
         Http::preventStrayRequests();
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-25 12:00:00', 'UTC'));
-        $this->owner = User::factory()->create(['name' => 'Jamie Dashboard']);
+        $this->owner = User::factory()->create(['name' => 'Jamie Dashboard', 'food_preferences_reviewed_at' => now()]);
         $this->owner->nutritionProfile()->create(['goal' => 'build_muscle', 'meals_per_day' => 5, 'snacks_per_day' => 1, 'weight_kg' => 80]);
         $this->guide = ['status' => 'ready', 'message' => 'Test guide', 'calories_kcal' => 2000,
-            'protein_g' => 150, 'carbohydrate_g' => 200, 'fat_g' => 200/3, 'macro_source' => 'goal'];
+            'protein_g' => 150, 'carbohydrate_g' => 200, 'fat_g' => 200 / 3, 'macro_source' => 'goal'];
         $this->mock(NutritionTargetCalculator::class, function ($mock) {
             $mock->shouldReceive('calculate')->andReturnUsing(function ($profile) {
                 $this->calculatedProfiles[] = $profile?->user_id;
+
                 return $profile ? $this->guide : ['status' => 'incomplete', 'message' => 'Save your profile to see an estimate.'];
             });
         });
@@ -59,6 +61,7 @@ class DashboardTest extends TestCase
             'totals' => $nutrition ?? ['energy_kcal' => 500, 'protein_g' => 40, 'carbohydrate_g' => 60, 'fat_g' => 12, 'fibre_g' => 10]];
         $saved = SavedMeal::query()->create(['user_id' => $user->id, 'meal_type' => 'breakfast',
             'content_hash' => hash('sha256', uniqid('', true)), 'snapshot' => $snapshot]);
+
         return MealPlanEntry::query()->create(['user_id' => $user->id, 'saved_meal_id' => $saved->id,
             'plan_date' => $date, 'slot' => $slot, 'snapshot' => $snapshot]);
     }
@@ -69,17 +72,11 @@ class DashboardTest extends TestCase
         $this->assertSame(DashboardController::class, app('router')->getRoutes()->getByName('dashboard')->getControllerClass());
     }
 
-    public function test_empty_dashboard_shows_current_guides_and_all_full_meal_slots(): void
+    public function test_dashboard_before_first_preview_shows_the_next_step_instead_of_empty_metrics(): void
     {
         $response = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk();
-        $this->assertSame(0, $response->viewData('plannedCount'));
-        $this->assertSame(6, $response->viewData('patternCount'));
-        $this->assertSame(array_keys(MealPlanSlots::forCount(5, 1)), array_column($response->viewData('rows'), 'slot'));
-        $this->assertEquals(2000, $response->viewData('metrics')[0]['guide']);
-        $this->assertEquals(0, $response->viewData('metrics')[0]['planned']);
-        $this->assertSame([$this->owner->id], $this->calculatedProfiles);
-        $response->assertSee('Today’s menu')->assertSee('Generate my week')->assertSee('Available carbs')
-            ->assertDontSee('Available when food logging is connected.');
+        $response->assertViewIs('onboarding')->assertSee('Your setup is complete')
+            ->assertSee('Continue to weekly preview')->assertDontSee('Today’s menu');
     }
 
     public function test_only_todays_owned_snapshots_are_counted_without_rewriting_them(): void
@@ -144,9 +141,8 @@ class DashboardTest extends TestCase
     public function test_missing_profile_and_review_status_do_not_show_fabricated_guides(): void
     {
         $this->owner->nutritionProfile()->delete();
-        $response = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk()->assertSee('Set your daily nutrition guide');
-        $this->assertNull($response->viewData('metrics')[0]['guide']);
-        $this->assertSame(0, $response->viewData('patternCount'));
+        $response = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk()->assertSee('Continue to nutrition profile');
+        $response->assertViewIs('onboarding')->assertDontSee('Calories planned');
         $this->owner->nutritionProfile()->create(['meals_per_day' => 3]);
         $this->guide = ['status' => 'review', 'message' => 'Individual review is required.'];
         $this->get(route('dashboard'))->assertOk()->assertSee('Individual review is required.');
@@ -190,6 +186,7 @@ class DashboardTest extends TestCase
         $this->assertDatabaseCount('jobs', 0);
         Http::assertNothingSent();
     }
+
     public function test_snapshot_names_and_methods_are_escaped_in_the_view(): void
     {
         $entry = $this->planned($this->owner, '2026-10-25', 'breakfast', null, '<script>alert("name")</script>');
@@ -224,5 +221,4 @@ class DashboardTest extends TestCase
         $this->assertNull($response->viewData('totals')['estimated_available_carbohydrate_g']);
         $this->assertCount(4, $response->viewData('metrics'));
     }
-
 }

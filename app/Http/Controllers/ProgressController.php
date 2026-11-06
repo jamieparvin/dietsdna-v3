@@ -3,10 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\WeightEntry;
+use App\Services\Nutrition\BodyMassIndex;
+use App\Services\Nutrition\WeightInput;
+use App\Services\Nutrition\WeightUnits;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ProgressController extends Controller
 {
@@ -32,11 +37,13 @@ class ProgressController extends Controller
             ->appends(['days' => $days]);
 
         $firstEntry = $user->weightEntries()
+            ->where('recorded_on', '<', $today->addDay()->toDateString())
             ->orderBy('recorded_on')
             ->orderBy('id')
             ->first();
 
         $latestEntry = $user->weightEntries()
+            ->where('recorded_on', '<', $today->addDay()->toDateString())
             ->orderByDesc('recorded_on')
             ->orderByDesc('id')
             ->first();
@@ -69,19 +76,22 @@ class ProgressController extends Controller
                 '>=',
                 $today->subDays($days - 1)->toDateString()
             )
-            ->where('recorded_on', '<=', $today->toDateString())
+            ->where('recorded_on', '<', $today->addDay()->toDateString())
             ->orderBy('recorded_on')
             ->get(['recorded_on', 'weight_kg']);
 
         $chartPoints = $chartEntries
             ->map(fn (WeightEntry $entry) => [
                 'date' => $entry->recorded_on->format('Y-m-d'),
-                'weight' => (float) $entry->weight_kg,
+                'weight' => WeightUnits::pounds($entry->weight_kg),
             ])
             ->values()
             ->all();
 
+        $bmi = app(BodyMassIndex::class)->forProgress($user);
+
         return view('progress.index', compact(
+            'bmi',
             'today',
             'days',
             'entries',
@@ -185,7 +195,9 @@ class ProgressController extends Controller
     ): array {
         $today = CarbonImmutable::now('Europe/London')->toDateString();
 
-        return $request->validate([
+        $input = app(WeightInput::class)->kilograms($request, ['weight_kg' => $entry?->weight_kg], true);
+
+        return Validator::make($input, [
             'recorded_on' => [
                 'required',
                 'date_format:Y-m-d',
@@ -199,13 +211,12 @@ class ProgressController extends Controller
                 'required',
                 'numeric',
                 'between:20,500',
-                'decimal:0,2',
+                ...($request->exists('weight_lbs') ? [] : ['decimal:0,2']),
             ],
         ], [
-            'recorded_on.unique' =>
-                'You already recorded a weight for this date. '
+            'recorded_on.unique' => 'You already recorded a weight for this date. '
                 .'Edit that entry instead.',
-        ]);
+        ])->validate();
     }
 
     private function assertDateAvailable(
@@ -215,7 +226,7 @@ class ProgressController extends Controller
     ): void {
         $exists = $request->user()
             ->weightEntries()
-            ->where('recorded_on', $date)
+            ->whereDate('recorded_on', $date)
             ->when(
                 $exceptId !== null,
                 fn ($query) => $query->where('id', '!=', $exceptId)
@@ -223,9 +234,8 @@ class ProgressController extends Controller
             ->exists();
 
         if ($exists) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'recorded_on' =>
-                    'You already recorded a weight for this date. '
+            throw ValidationException::withMessages([
+                'recorded_on' => 'You already recorded a weight for this date. '
                     .'Edit that entry instead.',
             ]);
         }

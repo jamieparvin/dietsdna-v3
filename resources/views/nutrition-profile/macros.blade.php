@@ -71,11 +71,9 @@
             @endforeach
         </div>
         <p class="pf-note">
-            Protein equivalent: {{ number_format($macroTargets['protein_factor'], 2) }} g/kg of your saved weight.
-            This is the result of the percentage split, not a separate weight-based protein rule.
+            Protein equivalent: {{ number_format($macroTargets['protein_factor'] * \App\Services\Nutrition\WeightUnits::KG_PER_LB, 2) }} g/lb of your saved weight.
+            Your protein target is based on your chosen calorie split.
         </p>
-    @else
-        <p class="mc-alert">{{ $macroTargets['message'] }}</p>
     @endif
 
     <p class="pf-note">
@@ -91,8 +89,9 @@
                 @if($macroReady)
                     <div class="mc-math">
                         <strong>How your calories are estimated</strong>
-                        <p>Resting energy = 10 × weight (kg) + 6.25 × height (cm) − 5 × age + the calculation-sex constant (+5 male, −161 female).</p>
-                        <p>Your inputs: 10 × {{ number_format($profile->weight_kg, 2) }} + 6.25 × {{ number_format($profile->height_cm, 2) }} − 5 × {{ $macroBase['age'] }} {{ $profile->calculation_sex === 'male' ? '+ 5' : '− 161' }} = {{ number_format($macroBase['resting_kcal'], 1) }} kcal.</p>
+                        <p>Shown weights are rounded; calculations use the full stored weight.</p>
+                        <p>Resting energy = 10 × (weight in lbs × 0.45359237) + 6.25 × height (cm) − 5 × age + the calculation-sex constant (+5 male, −161 female).</p>
+                        <p>Your inputs: 10 × ({{ \App\Services\Nutrition\WeightUnits::format($profile->weight_kg) }} lbs × 0.45359237) + 6.25 × {{ number_format($profile->height_cm, 2) }} − 5 × {{ $macroBase['age'] }} {{ $profile->calculation_sex === 'male' ? '+ 5' : '− 161' }} = {{ number_format($macroBase['resting_kcal'], 1) }} kcal.</p>
                         <p>{{ number_format($macroBase['resting_kcal'], 1) }} × activity factor {{ $macroBase['activity_factor'] }} = {{ number_format($macroBase['maintenance_kcal'], 1) }} kcal estimated maintenance.</p>
                         <p>After the goal adjustment and rounding: <strong>{{ number_format($macroBase['calories_kcal']) }} kcal/day</strong> ({{ $macroBase['adjustment_kcal'] >= 0 ? '+' : '−' }}{{ number_format(abs($macroBase['adjustment_kcal']), 1) }} kcal compared with estimated maintenance).</p>
                     </div>
@@ -149,7 +148,7 @@
                                     step="0.01" required value="{{ $macroInitial[$macroName] }}"
                                     data-macro="{{ $macroName }}" aria-describedby="macro-{{ $macroName }}-preview">
                                 <output id="macro-{{ $macroName }}-preview">Live gram preview appears here.</output>
-                                <span class="pf-note">This version allows {{ $macroMin }}–{{ $macroMax }}%.</span>
+                                <span class="pf-note">Choose between {{ $macroMin }}–{{ $macroMax }}%.</span>
                             </div>
                         @endforeach
                     </div>

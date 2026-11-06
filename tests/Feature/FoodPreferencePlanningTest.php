@@ -27,7 +27,7 @@ class FoodPreferencePlanningTest extends TestCase
     {
         parent::setUp();
         Http::preventStrayRequests();
-        $this->owner = User::factory()->create();
+        $this->owner = User::factory()->create(['food_preferences_reviewed_at' => now()]);
         $this->owner->nutritionProfile()->create([
             'date_of_birth' => '1996-01-01', 'height_cm' => 180, 'weight_kg' => 80,
             'calculation_sex' => 'male', 'activity_level' => 'moderate', 'goal' => 'maintain_weight',
@@ -76,7 +76,7 @@ class FoodPreferencePlanningTest extends TestCase
         $this->assertSame('Recorded restriction', $profile->fresh()->foods_to_avoid);
         $this->assertEquals(82, $profile->fresh()->weight_kg);
         $this->get(route('nutrition-profile.edit'))->assertOk()
-            ->assertSee('Automatic meal planning does not currently support food allergies.')
+            ->assertSee('Important: food allergies')->assertSee('DietsDNA does not currently support meal planning for food allergies.')
             ->assertSee('account has a recorded allergy or food restriction')
             ->assertDontSee('name="dietary_preference"', false)->assertDontSee('name="allergies"', false)
             ->assertDontSee('name="foods_to_avoid"', false);
@@ -100,8 +100,8 @@ class FoodPreferencePlanningTest extends TestCase
     public function test_recorded_restriction_is_explained_even_when_calculation_profile_is_incomplete(): void
     {
         $this->owner->nutritionProfile()->update(['height_cm' => null, 'allergies' => 'Recorded allergy']);
-        $this->actingAs($this->owner)->get(route('meal-ideas.index'))->assertOk()
-            ->assertSee('account has a recorded allergy or food restriction');
+        $this->actingAs($this->owner)->get(route('meal-ideas.index'))->assertRedirect(route('nutrition-profile.edit'));
+        $this->get(route('nutrition-profile.edit'))->assertOk()->assertSee('account has a recorded allergy or food restriction');
         Http::assertNothingSent();
     }
 

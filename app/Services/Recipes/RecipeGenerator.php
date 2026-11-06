@@ -15,7 +15,8 @@ class RecipeGenerator
     public function generate(
         Collection $ingredients,
         int $count,
-        string $brief
+        string $brief,
+        bool $includeTiming = false
     ): array {
         $key = config('services.openai.key');
 
@@ -71,6 +72,10 @@ Otherwise return exactly the requested number of varied recipes.
 Do not calculate or return calorie or macro figures.
 PROMPT;
 
+        if ($includeTiming) {
+            $instructions .= "\nReturn estimated_prep_minutes and estimated_cook_minutes as non-negative whole minutes for each recipe. Include preparation and cooking, and choose methods whose sum fits the available time in the brief. These are AI estimates, never verified timing guarantees.";
+        }
+
         try {
             $response = Http::withToken($key)
                 ->withOptions([
@@ -95,13 +100,13 @@ PROMPT;
                             'type' => 'json_schema',
                             'name' => 'dietsdna_recipe_batch',
                             'strict' => true,
-                            'schema' => $this->schema($ids),
+                            'schema' => $this->schema($ids, $includeTiming),
                         ],
                     ],
                 ]);
         } catch (ConnectionException $exception) {
             report($exception);
-            
+
             $this->fail(
                 'OpenAI could not be reached or the request timed out. '
                 .'No recipes were saved. The request was not automatically retried.'
@@ -162,8 +167,12 @@ PROMPT;
                 'recipes' => ['required', 'array', 'size:'.$count],
                 'recipes.*' => [
                     'required',
-                    'array:name,description,instructions,servings,ingredients',
+                    'array:name,description,instructions,servings,ingredients'.($includeTiming ? ',estimated_prep_minutes,estimated_cook_minutes' : ''),
                 ],
+                ...($includeTiming ? [
+                    'recipes.*.estimated_prep_minutes' => ['required', 'integer', 'between:0,1440'],
+                    'recipes.*.estimated_cook_minutes' => ['required', 'integer', 'between:0,1440'],
+                ] : []),
                 'recipes.*.name' => ['required', 'string', 'max:255'],
                 'recipes.*.description' => ['required', 'string', 'max:5000'],
                 'recipes.*.instructions' => ['required', 'string', 'max:20000'],
@@ -187,6 +196,9 @@ PROMPT;
         );
 
         if ($validator->fails()) {
+            if ($includeTiming && collect($validator->errors()->keys())->contains(fn ($key) => str_contains($key, 'estimated_'))) {
+                $this->fail('The generated meals did not include valid preparation and cooking estimates. Try a fresh preview; no new meals have been saved.');
+            }
             $this->fail(
                 'The generated batch did not pass validation, or the catalog '
                 .'could not support the brief. Nothing was saved. '
@@ -209,7 +221,7 @@ PROMPT;
         return $recipes;
     }
 
-    private function schema(array $ids): array
+    private function schema(array $ids, bool $includeTiming = false): array
     {
         $ingredient = [
             'type' => 'object',
@@ -247,6 +259,13 @@ PROMPT;
             ],
             'additionalProperties' => false,
         ];
+
+        if ($includeTiming) {
+            foreach (['estimated_prep_minutes', 'estimated_cook_minutes'] as $field) {
+                $recipe['properties'][$field] = ['type' => 'integer'];
+                $recipe['required'][] = $field;
+            }
+        }
 
         return [
             'type' => 'object',

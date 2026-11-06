@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\EnsureSetupComplete;
 use App\Models\MealPlanEntry;
 use App\Models\SavedMeal;
 use App\Models\User;
@@ -24,6 +25,8 @@ class SavedMealDeletionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // This suite exercises meal behavior with minimal profiles; onboarding has its own route coverage.
+        $this->withoutMiddleware(EnsureSetupComplete::class);
         Http::preventStrayRequests();
     }
 
@@ -115,7 +118,9 @@ class SavedMealDeletionTest extends TestCase
     public function test_last_item_on_page_returns_to_previous_page_and_preserves_context(): void
     {
         $user = User::factory()->create();
-        for ($i = 0; $i < 7; $i++) { $meal = $this->meal($user); }
+        for ($i = 0; $i < 7; $i++) {
+            $meal = $this->meal($user);
+        }
         $response = $this->actingAs($user)->delete(route('saved-meals.destroy', $meal->id), [
             'delete_confirmed' => 1, 'date' => '2026-11-04', 'breakfast_page' => 2, 'lunch_page' => 3,
         ]);

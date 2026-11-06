@@ -2,13 +2,13 @@
 
 namespace App\Services\Meals;
 
-use App\Models\MealPlanEntry;
 use App\Models\Ingredient;
+use App\Models\MealPlanEntry;
 use App\Models\SavedMeal;
 use App\Models\User;
 use App\Models\WeeklyMealDraft;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class WeeklyMealPlanner
@@ -19,8 +19,7 @@ class WeeklyMealPlanner
         private readonly WeeklyMealSchedule $schedule,
         private readonly MealPortionBalancer $balancer,
         private readonly MealPlanWeekState $weeks,
-    ) {
-    }
+    ) {}
 
     public function source(User $user): array
     {
@@ -31,13 +30,21 @@ class WeeklyMealPlanner
             $context['snack_count'] ?? 0
         );
 
+        $profileAttributes = $profile?->getAttributes() ?? [];
+        // Retain legacy decimal text when added precision only pads existing kg values.
+        foreach (['weight_kg', 'target_weight_kg'] as $field) {
+            if (isset($profileAttributes[$field]) && is_string($profileAttributes[$field])) {
+                $profileAttributes[$field] = preg_replace('/^(-?\d+\.\d{2})0+$/', '$1', $profileAttributes[$field]);
+            }
+        }
+
         // Include fields omitted by older generator signatures, e.g. cooking time.
         $signatureInput = [
             'version' => 'weekly-planning-v3-full-meals',
             'portion_balance' => MealPortionBalancer::VERSION,
             'generator_signature' => $context['signature'],
             // The retired dietary field and its timestamp are not planning inputs.
-            'profile' => array_diff_key($profile?->getAttributes() ?? [], array_flip(['dietary_preference', 'updated_at'])),
+            'profile' => array_diff_key($profileAttributes, array_flip(['dietary_preference', 'updated_at'])),
             'slots' => $slots,
         ];
         $signature = hash('sha256', json_encode($signatureInput, JSON_THROW_ON_ERROR));
@@ -67,6 +74,7 @@ class WeeklyMealPlanner
             ->all();
     }
 
+    /** Two-meal patterns permit at most one replacement batch per main type, shared by time and portion repairs. */
     public function generate(WeeklyMealDraft $draft): void
     {
         $user = User::query()->findOrFail($draft->user_id);
@@ -77,6 +85,7 @@ class WeeklyMealPlanner
             array_keys($draft->slots)
         )));
         $pools = [];
+        $repairedTypes = [];
         $state = $this->planState($draft);
         $fixed = $draft->mode === 'replace' ? [] : $state['fixed'];
         $usage = $this->proteinUsage($fixed);
@@ -90,6 +99,30 @@ class WeeklyMealPlanner
             $this->assertReplacementBaseline($draft, $this->planState($draft));
             $batch = $this->generator->generate($user, $type, 3, [], [], $usage);
             $source = $this->assertCurrent($draft, $user);
+            $context = $this->generator->context($user, $type);
+            if ($draft->meal_count === 2 && in_array($type, ['lunch', 'dinner'], true)
+                && ! array_filter($batch['ideas'], fn ($idea) => MealPreparationTime::fits($idea, $context['cooking_minutes'] ?? null))) {
+                $checked = app(MealIdeaPortionBalancer::class)->balanceBatch($batch, $context, true);
+                if (! $checked['ideas']) {
+                    $batch = $this->generator->generate($user, $type, 3, array_column($batch['ideas'], 'name'), $checked['portion_rejections'], $usage);
+                    $this->assertCurrent($draft, $user);
+                    $repairedTypes[$type] = true;
+                }
+            }
+            $timedIdeas = [];
+            $timeFailure = null;
+            foreach ($batch['ideas'] as $idea) {
+                try {
+                    MealPreparationTime::assertFits($idea, $context['cooking_minutes'] ?? null);
+                    $timedIdeas[] = $idea;
+                } catch (ValidationException $exception) {
+                    $timeFailure = $exception;
+                }
+            }
+            if (! $timedIdeas) {
+                throw $timeFailure ?? ValidationException::withMessages(['week' => 'No meal options were available. Try a fresh preview; your existing plan has not changed.']);
+            }
+            $batch['ideas'] = $timedIdeas;
 
             $pools[$type] = array_map(
                 fn ($idea) => $this->snapshots->fromIdea($idea, $source['context']['ingredients']),
@@ -106,7 +139,44 @@ class WeeklyMealPlanner
             ]);
         }
 
-        $this->preparePreview($draft, $user, $pools, 'generating');
+        try {
+            $this->preparePreview($draft, $user, $pools, 'generating');
+        } catch (ValidationException $failure) {
+            if ($draft->meal_count !== 2) {
+                throw $failure;
+            }
+            $repaired = false;
+            foreach (['lunch', 'dinner'] as $type) {
+                if (isset($repairedTypes[$type]) || ! isset($pools[$type])) {
+                    continue;
+                }
+                if ($draft->fresh()->status !== 'generating') {
+                    return;
+                }
+                $this->assertCurrent($draft, $user);
+                $this->assertReplacementBaseline($draft, $this->planState($draft));
+                $context = $this->generator->context($user, $type);
+                $checked = app(MealIdeaPortionBalancer::class)->balanceBatch(['signature' => $context['signature'], 'meal_type' => $type, 'ideas' => $pools[$type]], $context, true);
+                if ($checked['ideas']) {
+                    continue;
+                }
+                $batch = $this->generator->generate($user, $type, 3, array_column($pools[$type], 'name'), $checked['portion_rejections'], $usage);
+                $this->assertCurrent($draft, $user);
+                $ideas = array_values(array_filter($batch['ideas'], fn ($idea) => MealPreparationTime::fits($idea, $context['cooking_minutes'] ?? null)));
+                if (! $ideas) {
+                    MealPreparationTime::assertFits($batch['ideas'][0] ?? [], $context['cooking_minutes'] ?? null);
+                    throw $failure;
+                }
+                $pools[$type] = array_map(fn ($idea) => $this->snapshots->fromIdea($idea, $context['ingredients']), $ideas);
+                $repairedTypes[$type] = true;
+                $repaired = true;
+            }
+            if (! $repaired) {
+                throw $failure;
+            }
+            WeeklyMealDraft::query()->whereKey($draft->id)->where('status', 'generating')->update(['generated' => json_encode($pools, JSON_THROW_ON_ERROR)]);
+            $this->preparePreview($draft, $user, $pools, 'generating');
+        }
     }
 
     /** Rebuild an unconfirmed stored preview. Never calls AI or writes planned/saved meals. */
@@ -134,10 +204,11 @@ class WeeklyMealPlanner
                 array_keys($draft->slots)
             ));
             foreach ($types as $type) {
-                if (! isset($pools[$type]) || ! is_array($pools[$type]) || count($pools[$type]) < 3) {
+                if (! isset($pools[$type]) || ! is_array($pools[$type]) || count($pools[$type]) < 1) {
                     $this->fail('This draft does not contain a complete set of stored options. No AI request was made.');
                 }
                 foreach ($pools[$type] as $snapshot) {
+                    MealPreparationTime::assertFits($snapshot, $source['context']['cooking_minutes'] ?? null);
                     if (! $this->snapshots->eligible($snapshot, $source['context']['ingredients'])) {
                         $this->fail('A stored meal is no longer eligible. No AI request was made.');
                     }
@@ -185,10 +256,14 @@ class WeeklyMealPlanner
         $catalog = $source['context']['ingredients']->mapWithKeys(
             fn ($ingredient) => [(int) $ingredient->id => $ingredient->getAttributes()]
         )->all();
-        $proposals = $this->schedule->buildBalanced(
-            $draft->start_date->toDateString(), $draft->slots, $pools,
-            $fixed, $catalog, $targets, $this->balancer, $this->proteinUsage($fixed)
-        );
+        try {
+            $proposals = $this->schedule->buildBalanced(
+                $draft->start_date->toDateString(), $draft->slots, $pools,
+                $fixed, $catalog, $targets, $this->balancer, $this->proteinUsage($fixed)
+            );
+        } catch (ValidationException $exception) {
+            throw ValidationException::withMessages(['week' => 'No suitable preview was found for your '.$draft->meal_count.' full meals per day within the portion limits. Try a fresh preview to request different combinations. The available ingredient library may need review if this continues. Your daily targets, saved meals and existing plan have not changed. '.collect($exception->errors())->flatten()->first()]);
+        }
         foreach ($proposals as &$proposal) {
             $proposal['plan_fingerprint'] = $state['fingerprint'];
         }
@@ -271,6 +346,7 @@ class WeeklyMealPlanner
                         $this->fail('A replacement slot could not be written. The transaction was rolled back.');
                     }
                     $skipped++;
+
                     continue;
                 }
 

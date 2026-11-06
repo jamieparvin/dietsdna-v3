@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\EnsureSetupComplete;
 use App\Models\Ingredient;
 use App\Models\MealPlanEntry;
 use App\Models\SavedMeal;
@@ -27,6 +28,8 @@ class ShoppingListTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // This suite exercises meal behavior with minimal profiles; onboarding has its own route coverage.
+        $this->withoutMiddleware(EnsureSetupComplete::class);
         Http::preventStrayRequests();
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-26 12:00:00', 'Europe/London'));
         $this->owner = User::factory()->create();

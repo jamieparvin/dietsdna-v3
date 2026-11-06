@@ -3,6 +3,9 @@
 @section('title', 'Food preferences')
 
 @section('content')
+    @if(!$setup['complete'] || request()->routeIs('weekly-meals.create'))
+        @include('onboarding-progress')
+    @endif
 @php
     $choices = old('preferences', $saved);
 
@@ -395,31 +398,16 @@
 <div class="fp-page">
     <header class="fp-heading">
         <h1>Your food preferences</h1>
-        <p>Choose the foods you enjoy and those you would like left out.</p>
+        <p>Choose foods you enjoy and those you’d prefer to avoid. We’ll use these choices when suggesting meals. You can update them at any time.</p>
     </header>
 
-    @if(session('status'))
-        <div class="fp-status" role="status">
-            {{ session('status') }}
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="fp-errors" role="alert">
-            <ul>
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+    @include('partials.food-allergy-notice')
 
     <div class="fp-notice">
         <strong>Like</strong> favours a food.
-        <strong>Dislike</strong> marks it to leave out.
-        <strong>Unspecified</strong> keeps it available.
-        Your choice applies to all linked raw and cooked versions of the food.
-        Food preferences are for ingredient choices and do not provide allergy protection.
+        <strong>Dislike</strong> leaves it out of future suggestions.
+        <strong>Unspecified</strong> adds no preference.
+        Your choice applies to the raw and cooked options listed under the same food. Existing saved meals and plans are not changed.
     </div>
 
     <div class="fp-toolbar">
@@ -510,7 +498,7 @@
             No foods match your search.
         </div>
 
-        @if($ingredients->isNotEmpty())
+        <p class="fp-notice">Save to confirm you have reviewed your choices, even if you leave every food Unspecified.</p>
             <div class="fp-footer">
                 <div class="fp-summary" aria-live="polite">
                     <strong id="food-liked-count">0</strong> liked
@@ -522,13 +510,11 @@
                 </div>
 
                 <button type="submit" class="fp-save">
-                    Save preferences
+                    {{ $setup['complete'] ? 'Save preferences' : 'Save and continue' }}
                 </button>
             </div>
-        @else
-            <div class="fp-empty">
-                No foods are available yet.
-            </div>
+        @if($ingredients->isEmpty())
+            <p class="fp-empty">No foods are available yet. You can still save your review with all choices unspecified.</p>
         @endif
     </form>
 </div>

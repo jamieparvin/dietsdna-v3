@@ -24,7 +24,7 @@ class ShoppingGenerationTest extends TestCase
     {
         Http::preventStrayRequests();
         config(['services.openai.key' => 'test-key', 'services.openai.recipe_model' => 'test-model']);
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['food_preferences_reviewed_at' => now()]);
         $owner->nutritionProfile()->create(['date_of_birth' => '1996-01-01', 'height_cm' => 180,
             'weight_kg' => 80, 'calculation_sex' => 'male', 'activity_level' => 'moderate',
             'goal' => 'maintain_weight', 'planning_context' => 'general_adult', 'resistance_training' => false,

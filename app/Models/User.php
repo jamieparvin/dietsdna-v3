@@ -6,7 +6,9 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -23,18 +25,19 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'food_preferences_reviewed_at' => 'datetime',
         ];
     }
-    
-    public function nutritionProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
+
+    public function nutritionProfile(): HasOne
     {
         return $this->hasOne(NutritionProfile::class);
     }
 
-    public function foodPreferences(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function foodPreferences(): BelongsToMany
     {
         return $this->belongsToMany(
-            \App\Models\Ingredient::class,
+            Ingredient::class,
             'ingredient_user_preferences'
         )
             ->withPivot('preference')
@@ -45,5 +48,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(WeightEntry::class);
     }
-
 }

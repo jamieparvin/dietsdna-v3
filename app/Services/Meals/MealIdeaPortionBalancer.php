@@ -49,6 +49,7 @@ class MealIdeaPortionBalancer
         $requested = count($batch['ideas']);
         foreach ($batch['ideas'] as $idea) {
             try {
+                MealPreparationTime::assertFits($idea, $context['cooking_minutes'] ?? null);
                 $snapshot = $this->snapshots->fromIdea($idea, $context['ingredients']);
                 $balanced = $this->balancer->balance([$this->proposal($snapshot, $context)], [], $catalog, $targets);
                 $snapshot = $balanced[0]['snapshot'];
@@ -89,6 +90,7 @@ class MealIdeaPortionBalancer
     /** Validate, but NEVER resize, the portion already displayed in the session. */
     public function assertSavable(array $idea, array $context): void
     {
+        MealPreparationTime::assertFits($idea, $context['cooking_minutes'] ?? null);
         if (($idea['idea_portion_balance']['version'] ?? null) !== self::VERSION
             || ($idea['idea_portion_balance']['balancer_version'] ?? null) !== MealPortionBalancer::VERSION
             || ($idea['idea_portion_balance']['meal_type'] ?? null) !== $context['meal_type']

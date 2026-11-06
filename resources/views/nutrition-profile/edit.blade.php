@@ -3,11 +3,15 @@
 @section('title', 'Nutrition profile')
 
 @section('content')
+    @if(!$setup['complete'] || request()->routeIs('weekly-meals.create'))
+        @include('onboarding-progress')
+    @endif
     @php
         $hasProfile = $profile !== null;
+        $isProfileSetup = ! $setup['complete'];
 
-        $openSection = function (array $fields) use ($hasProfile, $errors) {
-            if (! $hasProfile) {
+        $openSection = function (array $fields) use ($hasProfile, $errors, $setup) {
+            if (! $hasProfile || ! $setup['profileComplete']) {
                 return true;
             }
 
@@ -96,6 +100,19 @@
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 22px;
+        }
+
+        .pf-setup-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .pf-setup-grid .pf-edit-body {
+            padding: 0;
+        }
+
+        .pf-field-hint {
+            color: #53675e;
+            font-weight: 400;
         }
 
         .pf-card {
@@ -343,7 +360,7 @@
             border-radius: 16px;
         }
 
-        .pf-save > .pf-note {
+        .pf-save > .guidance-estimate {
             flex: 1 1 300px;
         }
 
@@ -394,7 +411,7 @@
                 padding: 20px;
             }
 
-            .pf-save > .pf-note {
+            .pf-save > .guidance-estimate {
                 flex: auto;
             }
 
@@ -413,36 +430,20 @@
 
                 <p>
                     Your measurements, goals and meal pattern.
-                    Open a card to make changes.
+                    {{ $isProfileSetup ? 'Complete the fields below. You can save your progress at any time.' : 'Open a card to make changes.' }}
                 </p>
             </div>
 
             <div class="pf-saved">
-                @if ($profile?->updated_at)
+                @if($isProfileSetup)
+                    {{ !$hasProfile ? 'Profile not started' : (!$setup['profileComplete'] ? 'Profile setup in progress' : ($targets['status'] === 'review' ? 'Details saved - automatic planning unavailable' : 'Profile saved - preferences next')) }}
+                @elseif($profile?->updated_at)
                     Saved {{ $profile->updated_at->timezone('Europe/London')->format('j M Y, H:i') }}
-                @else
-                    Ready to personalise
                 @endif
             </div>
         </header>
 
-        <p class="pf-note">Automatic meal planning does not currently support food allergies. Food preferences are for ingredient choices and do not provide allergy protection.</p>
-        <p class="pf-note">Manage ordinary ingredient choices in <a href="{{ route('food-preferences.edit') }}">Food preferences</a>.</p>
-        @if ($hasRestrictions)
-            <p class="pf-warning" role="status">Automatic meal generation is unavailable because your account has a recorded allergy or food restriction. Food preferences do not provide allergy protection.</p>
-        @endif
-
-        @if ($errors->any())
-            <div class="pf-errors" role="alert">
-                <strong>Please check the following:</strong>
-
-                <ul>
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+        @include('partials.food-allergy-notice', ['restrictionMessage' => $hasRestrictions ? 'Automatic meal generation is unavailable because your account has a recorded allergy or food restriction.' : null])
 
         <form
             method="POST"
@@ -452,309 +453,149 @@
             @csrf
             @method('PUT')
 
-            <div class="pf-grid">
-                <section class="pf-card" aria-labelledby="personal-heading">
-                    <div class="pf-card-head">
-                        <span class="pf-number" aria-hidden="true">01</span>
+            <div class="pf-grid {{ $isProfileSetup ? 'pf-setup-grid' : '' }}">
+                @if($isProfileSetup)
+                    @include('nutrition-profile.setup-fields')
+                @else
+                    <section class="pf-card" aria-labelledby="personal-heading">
+                        <div class="pf-card-head">
+                            <span class="pf-number" aria-hidden="true">01</span>
 
-                        <div>
-                            <h2 id="personal-heading">Personal details</h2>
-                            <p class="pf-description">Your account and measurements</p>
-                        </div>
-                    </div>
-
-                    <dl class="pf-list">
-                        <div>
-                            <dt>Name</dt>
-                            <dd>{{ auth()->user()->name }}</dd>
-                        </div>
-
-                        <div>
-                            <dt>Email address</dt>
-                            <dd>{{ auth()->user()->email }}</dd>
-                        </div>
-
-                        <div>
-                            <dt>Date of birth</dt>
-                            <dd>{{ $profile?->date_of_birth?->format('j M Y') ?? 'Not set' }}</dd>
-                        </div>
-
-                        <div>
-                            <dt>Height</dt>
-                            <dd>{{ $formatMeasurement($profile?->height_cm, 'cm') }}</dd>
-                        </div>
-
-                        <div>
-                            <dt>Profile weight</dt>
-                            <dd>{{ $formatMeasurement($profile?->weight_kg, 'kg') }}</dd>
-                        </div>
-                    </dl>
-
-                    <p class="pf-note">
-                        Your profile weight is used to calculate your nutrition guide.
-                        Record dated weigh-ins in
-                        <a href="{{ route('progress.index') }}">Your progress</a>.
-                        Weigh-ins do not automatically update this profile weight.
-                    </p>
-
-                    <details
-                        class="pf-edit"
-                        @if ($openSection(['date_of_birth', 'height_cm', 'weight_kg'])) open @endif
-                    >
-                        <summary>Edit personal details</summary>
-
-                        <div class="pf-edit-body">
-                            <div class="pf-fields">
-                                <div class="pf-span">
-                                    <label for="date_of_birth">Date of birth</label>
-
-                                    <input
-                                        id="date_of_birth"
-                                        name="date_of_birth"
-                                        type="date"
-                                        autocomplete="bday"
-                                        min="{{ $earliestBirthDate }}"
-                                        max="{{ $latestBirthDate }}"
-                                        value="{{ old('date_of_birth', $profile?->date_of_birth?->format('Y-m-d')) }}"
-                                        aria-describedby="birth-date-help"
-                                    >
-
-                                    <p class="pf-note" id="birth-date-help">
-                                        This nutrition profile is for adults aged 18 and over.
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label for="height_cm">Height (cm)</label>
-
-                                    <input
-                                        id="height_cm"
-                                        name="height_cm"
-                                        type="number"
-                                        min="50"
-                                        max="300"
-                                        step="0.01"
-                                        inputmode="decimal"
-                                        value="{{ old('height_cm', $profile?->height_cm) }}"
-                                    >
-                                </div>
-
-                                <div>
-                                    <label for="weight_kg">Profile weight (kg)</label>
-
-                                    <input
-                                        id="weight_kg"
-                                        name="weight_kg"
-                                        type="number"
-                                        min="20"
-                                        max="500"
-                                        step="0.01"
-                                        inputmode="decimal"
-                                        value="{{ old('weight_kg', $profile?->weight_kg) }}"
-                                    >
-                                </div>
-                            </div>
-
-                            <p class="pf-note">
-                                Name and email are shown from your account.
-                            </p>
-                        </div>
-                    </details>
-                </section>
-
-                <section class="pf-card" aria-labelledby="goals-heading">
-                    <div class="pf-card-head">
-                        <span class="pf-number" aria-hidden="true">02</span>
-
-                        <div>
-                            <h2 id="goals-heading">Goals and activity</h2>
-                            <p class="pf-description">Your direction and daily routine</p>
-                        </div>
-                    </div>
-
-                    <dl class="pf-list">
-                        <div class="pf-span">
-                            <dt>Primary goal</dt>
-                            <dd>{{ $goalText }}</dd>
-                        </div>
-
-                        <div class="pf-span">
-                            <dt>Activity level</dt>
-                            <dd>{{ $activityText }}</dd>
-                        </div>
-
-                        <div>
-                            <dt>Target weight</dt>
-                            <dd>{{ $formatMeasurement($profile?->target_weight_kg, 'kg') }}</dd>
-                        </div>
-
-                        <div>
-                            <dt>Daily meal pattern</dt>
-                            <dd>{{ $patternText }}</dd>
-                        </div>
-
-                        <div class="pf-span">
-                            <dt>Cooking time per meal</dt>
-                            <dd>{{ $profile?->cooking_minutes !== null ? $profile->cooking_minutes.' minutes' : 'Not set' }}</dd>
-                        </div>
-                    </dl>
-
-                    <p class="pf-note">
-                        Choose the descriptions that best reflect your goals
-                        and usual routine.
-                    </p>
-
-                    <details
-                        class="pf-edit"
-                        @if ($openSection([
-                            'goal',
-                            'activity_level',
-                            'target_weight_kg',
-                            'meals_per_day',
-                            'snacks_per_day',
-                            'cooking_minutes',
-                        ])) open @endif
-                    >
-                        <summary>Edit goals and activity</summary>
-
-                        <div class="pf-edit-body">
-                            <label for="goal">Main goal</label>
-
-                            <select id="goal" name="goal">
-                                <option value="">Choose your goal</option>
-
-                                @foreach ($goals as $value => $label)
-                                    <option
-                                        value="{{ $value }}"
-                                        @selected(old('goal', $profile?->goal) === $value)
-                                    >
-                                        {{ $label }}
-                                    </option>
-                                @endforeach
-                            </select>
-
-                            <label for="activity_level">Activity level</label>
-
-                            <select id="activity_level" name="activity_level">
-                                <option value="">Choose your activity level</option>
-
-                                @foreach ($activityLevels as $value => $label)
-                                    <option
-                                        value="{{ $value }}"
-                                        @selected(old('activity_level', $profile?->activity_level) === $value)
-                                    >
-                                        {{ $label }}
-                                    </option>
-                                @endforeach
-                            </select>
-
-                            <label for="target_weight_kg">Target weight (kg)</label>
-
-                            <input
-                                id="target_weight_kg"
-                                name="target_weight_kg"
-                                type="number"
-                                min="20"
-                                max="500"
-                                step="0.01"
-                                inputmode="decimal"
-                                value="{{ old('target_weight_kg', $profile?->target_weight_kg) }}"
-                                aria-describedby="target-weight-help"
-                            >
-
-                            <p class="pf-note" id="target-weight-help">
-                                Optional. This records your personal goal;
-                                it is not a recommended target.
-                            </p>
-
-                            <div class="pf-fields">
-                                <div>
-                                    <label for="meals_per_day">Full meals per day</label>
-
-                                    <select id="meals_per_day" name="meals_per_day">
-                                        <option value="">Choose your preference</option>
-
-                                        @foreach (range(2, 6) as $number)
-                                            <option
-                                                value="{{ $number }}"
-                                                @selected((string) old('meals_per_day', $profile?->meals_per_day) === (string) $number)
-                                            >
-                                                {{ $number }} meals
-                                            </option>
-                                        @endforeach
-                                    </select>
-
-                                    <p class="pf-note">
-                                        Choose your number of full meals.
-                                        Snacks are selected separately.
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label for="cooking_minutes">Cooking time per meal</label>
-
-                                    <select id="cooking_minutes" name="cooking_minutes">
-                                        <option value="">Choose your preference</option>
-
-                                        @foreach ([15, 30, 45, 60] as $minutes)
-                                            <option
-                                                value="{{ $minutes }}"
-                                                @selected((string) old('cooking_minutes', $profile?->cooking_minutes) === (string) $minutes)
-                                            >
-                                                {{ $minutes }} minutes
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="pf-span">
-                                    <label for="snacks_per_day">Optional snacks</label>
-
-                                    <select
-                                        id="snacks_per_day"
-                                        name="snacks_per_day"
-                                        aria-describedby="snacks-help"
-                                    >
-                                        @foreach ([0 => 'No snacks', 1 => '1 snack per day', 2 => '2 snacks per day'] as $value => $label)
-                                            <option
-                                                value="{{ $value }}"
-                                                @selected((string) old('snacks_per_day', $profile?->snacks_per_day ?? 0) === (string) $value)
-                                            >
-                                                {{ $label }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-
-                                    <p class="pf-note" id="snacks-help">
-                                        Snacks share your daily calorie and macro budget.
-                                        They do not increase your daily targets.
-                                    </p>
-                                </div>
+                            <div>
+                                <h2 id="personal-heading">Personal details</h2>
+                                <p class="pf-description">Your account and measurements</p>
                             </div>
                         </div>
-                    </details>
-                </section>
 
-                @include('nutrition-profile.calculation-details')
-                @include('nutrition-profile.targets')
+                        <dl class="pf-list">
+                            <div>
+                                <dt>Name</dt>
+                                <dd>{{ auth()->user()->name }}</dd>
+                            </div>
+
+                            <div>
+                                <dt>Email address</dt>
+                                <dd>{{ auth()->user()->email }}</dd>
+                            </div>
+
+                            <div>
+                                <dt>Date of birth</dt>
+                                <dd>{{ $profile?->date_of_birth?->format('j M Y') ?? 'Not set' }}</dd>
+                            </div>
+
+                            <div>
+                                <dt>Height</dt>
+                                <dd>{{ $formatMeasurement($profile?->height_cm, 'cm') }}</dd>
+                            </div>
+
+                            <div>
+                                <dt>Profile weight</dt>
+                                <dd>{{ \App\Services\Nutrition\WeightUnits::format($profile?->weight_kg).($profile?->weight_kg !== null ? ' lbs' : '') }}</dd>
+                            </div>
+                            <div>
+                                <dt>BMI · profile weight</dt>
+                                <dd data-bmi-value>{{ $bmi['value'] === null ? 'Not available' : number_format($bmi['value'], 1) }}</dd>
+                            </div>
+                        </dl>
+
+                        @include('partials.bmi-context')
+
+                        <p class="pf-note">
+                            Your profile weight is used to calculate your nutrition guide.
+                            Record dated weigh-ins in
+                            <a href="{{ route('progress.index') }}">Your progress</a>.
+                            Weigh-ins do not automatically update this profile weight.
+                        </p>
+
+                        <details
+                            class="pf-edit"
+                            @if ($openSection(['date_of_birth', 'height_cm', 'weight_kg', 'weight_lbs'])) open @endif
+                        >
+                            <summary>Edit personal details</summary>
+
+                            @include('nutrition-profile.personal-fields')
+                        </details>
+                    </section>
+
+                    <section class="pf-card" aria-labelledby="goals-heading">
+                        <div class="pf-card-head">
+                            <span class="pf-number" aria-hidden="true">02</span>
+
+                            <div>
+                                <h2 id="goals-heading">Goals and activity</h2>
+                                <p class="pf-description">Your direction and daily routine</p>
+                            </div>
+                        </div>
+
+                        <dl class="pf-list">
+                            <div class="pf-span">
+                                <dt>Primary goal</dt>
+                                <dd>{{ $goalText }}</dd>
+                            </div>
+
+                            <div class="pf-span">
+                                <dt>Activity level</dt>
+                                <dd>{{ $activityText }}</dd>
+                            </div>
+
+                            <div>
+                                <dt>Target weight</dt>
+                                <dd>{{ \App\Services\Nutrition\WeightUnits::format($profile?->target_weight_kg).($profile?->target_weight_kg !== null ? ' lbs' : '') }}</dd>
+                            </div>
+
+                            <div>
+                                <dt>Daily meal pattern</dt>
+                                <dd>{{ $patternText }}</dd>
+                            </div>
+
+                            <div class="pf-span">
+                                <dt>Time available per meal</dt>
+                                <dd>{{ $profile?->cooking_minutes !== null ? $profile->cooking_minutes.' minutes' : 'Not set' }}</dd>
+                            </div>
+                        </dl>
+
+                        <p class="pf-note">
+                            Choose the descriptions that best reflect your goals
+                            and usual routine.
+                        </p>
+
+                        <details
+                            class="pf-edit"
+                            @if ($openSection([
+                                'goal',
+                                'activity_level',
+                                'target_weight_kg',
+                                'target_weight_lbs',
+                                'meals_per_day',
+                                'snacks_per_day',
+                                'cooking_minutes',
+                            ])) open @endif
+                        >
+                            <summary>Edit goals and activity</summary>
+
+                            @include('nutrition-profile.goal-fields')
+                            @include('nutrition-profile.meal-pattern-fields')
+                        </details>
+                    </section>
+
+                    @include('nutrition-profile.calculation-details')
+                    @include('nutrition-profile.targets')
+                @endif
             </div>
 
             <footer class="pf-save">
-                <p class="pf-note">
-                    You can save an incomplete profile.
-                    Complete the calculation details to receive a nutrition guide,
-                    and choose your meal pattern before generating meals.
-                    Save changes before navigating to another page.
-                </p>
+                @include('partials.nutrition-estimate-disclaimer')
 
                 <div class="pf-save-actions">
                     <a href="{{ route('dashboard') }}">Back to dashboard</a>
-                    <button type="submit">Save nutrition profile</button>
+                    <button type="submit">{{ $setup['complete'] ? 'Save nutrition profile' : 'Save and continue' }}</button>
                 </div>
             </footer>
         </form>
 
-        @include('nutrition-profile.macros')
+        @if(!$isProfileSetup)
+            @include('nutrition-profile.macros')
+        @endif
     </div>
 
     <script>

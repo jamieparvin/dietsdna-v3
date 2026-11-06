@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\EnsureSetupComplete;
 use App\Models\Ingredient;
 use App\Models\SavedMeal;
 use App\Models\User;
@@ -9,21 +10,33 @@ use App\Services\Meals\MealIdeaGenerator;
 use App\Services\Meals\MealIdeaPortionBalancer;
 use App\Services\Meals\MealTargetAllocator;
 use App\Services\Meals\PlannedMealSnapshot;
+use App\Services\Nutrition\NutritionCalculatorSettings;
+use App\Services\Recipes\RecipeGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Tests\TestCase;
 
 class BalancedMealIdeasTest extends TestCase
 {
     use RefreshDatabase;
+
     private User $owner;
+
     private $ingredients;
+
     private int $calls = 0;
+
     private int $revision = 1;
+
     private bool $allUnfit = false;
+
     private bool $partial = false;
+
     private bool $replaceSuccessfully = false;
+
     private bool $replacementFails = false;
 
     protected function beforeRefreshingDatabase(): void
@@ -36,11 +49,13 @@ class BalancedMealIdeasTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // This suite exercises meal behavior with minimal profiles; onboarding has its own route coverage.
+        $this->withoutMiddleware(EnsureSetupComplete::class);
         Http::preventStrayRequests();
         $this->owner = User::factory()->create();
         $this->owner->nutritionProfile()->create(['meals_per_day' => 5, 'snacks_per_day' => 1]);
         $this->ingredients = collect();
-        foreach ([[400,100,0,0],[400,0,100,0],[900,0,0,100]] as $i => [$energy,$protein,$carbs,$fat]) {
+        foreach ([[400, 100, 0, 0], [400, 0, 100, 0], [900, 0, 0, 100]] as $i => [$energy,$protein,$carbs,$fat]) {
             $this->ingredients->push(Ingredient::create([
                 'food_code' => 'IDEA-TEST-'.$i, 'name' => 'Synthetic ingredient '.$i,
                 'category' => 'Vegetables', 'sub_category' => 'Test', 'preparation_state' => 'raw',
@@ -53,11 +68,12 @@ class BalancedMealIdeasTest extends TestCase
             $mock->shouldReceive('generate')->andReturnUsing(function ($user, $type) {
                 $this->calls++;
                 if ($this->calls === 2 && $this->replacementFails) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['generation' => 'Provider unavailable']);
+                    throw ValidationException::withMessages(['generation' => 'Provider unavailable']);
                 }
                 if ($this->calls === 2 && $this->replaceSuccessfully) {
                     $this->partial = false;
                 }
+
                 return $this->raw($this->context($user, $type));
             });
         });
@@ -69,6 +85,7 @@ class BalancedMealIdeasTest extends TestCase
         $profile = $user->nutritionProfile()->first();
         $daily = ['calories_kcal' => 3210, 'protein_g' => 240.75, 'carbohydrate_g' => 361.125, 'fat_g' => 89.1666666667];
         $allocation = app(MealTargetAllocator::class)->allocate($daily, (int) $profile->meals_per_day, (int) $profile->snacks_per_day);
+
         return ['signature' => 'test-'.$user->id.'-'.$this->revision.'-'.$type.'-'.$profile->meals_per_day.'-'.$profile->snacks_per_day,
             'meal_type' => $type, 'ingredients' => $this->ingredients,
             'meal_targets' => $allocation[$type]['targets'], 'targets' => $daily,
@@ -78,18 +95,22 @@ class BalancedMealIdeasTest extends TestCase
     private function raw(array $context): array
     {
         $ideas = [];
-        foreach (range(1,3) as $n) {
-            $rows = $context['ingredients']->map(fn ($food, $i) => ['name' => $food->name, 'preparation_state' => $food->preparation_state, 'quantity_g' => [20,40,10][$i]])->all();
-            if ($this->allUnfit || ($this->partial && $n === 1)) { array_pop($rows); }
+        foreach (range(1, 3) as $n) {
+            $rows = $context['ingredients']->map(fn ($food, $i) => ['name' => $food->name, 'preparation_state' => $food->preparation_state, 'quantity_g' => [20, 40, 10][$i]])->all();
+            if ($this->allUnfit || ($this->partial && $n === 1)) {
+                array_pop($rows);
+            }
             $ideas[] = ['name' => 'Meal alternative '.$n, 'description' => 'A synthetic test option.',
                 'instructions' => ['Arrange the listed ingredients in a bowl.', 'Combine the listed ingredients.', 'Layer the listed ingredients.'][$n - 1], 'ingredients' => $rows, 'totals' => [], 'calorie_difference' => -9999];
         }
+
         return ['signature' => $context['signature'], 'created_at' => now()->timestamp, 'meal_type' => $context['meal_type'], 'ideas' => $ideas];
     }
 
     private function batch(string $type = 'breakfast'): array
     {
         $this->actingAs($this->owner)->post(route('meal-ideas.store'), ['meal_type' => $type])->assertSessionHasNoErrors()->assertRedirect();
+
         return session('meal_ideas.user_'.$this->owner->id);
     }
 
@@ -153,12 +174,12 @@ class BalancedMealIdeasTest extends TestCase
     public function test_repeated_save_is_idempotent_and_another_option_can_still_be_saved(): void
     {
         $batch = $this->batch();
-        foreach ([0,0,1] as $index) {
+        foreach ([0, 0, 1] as $index) {
             $this->actingAs($this->owner)->post(route('saved-meals.store'), $this->payload($batch, $index))->assertSessionHasNoErrors();
         }
         $this->assertDatabaseCount('saved_meals', 2);
         $response = $this->get(route('meal-ideas.index', ['meal_type' => 'breakfast']))->assertOk();
-        $this->assertSame([0,1], $response->viewData('savedIdeaIndexes'));
+        $this->assertSame([0, 1], $response->viewData('savedIdeaIndexes'));
     }
 
     public function test_old_unchecked_batches_are_hidden_without_changing_saved_meals(): void
@@ -274,7 +295,9 @@ class BalancedMealIdeasTest extends TestCase
     public function test_snacks_use_one_snack_budget_and_zero_snacks_are_named_correctly(): void
     {
         $batch = $this->batch('snack');
-        foreach ($batch['ideas'] as $idea) { $this->assertEqualsWithDelta(321, $idea['totals']['energy_kcal'], 16.05); }
+        foreach ($batch['ideas'] as $idea) {
+            $this->assertEqualsWithDelta(321, $idea['totals']['energy_kcal'], 16.05);
+        }
         $this->owner->nutritionProfile()->update(['snacks_per_day' => 0]);
         $this->actingAs($this->owner)->get(route('meal-ideas.index', ['meal_type' => 'breakfast']))->assertOk()->assertSee('no optional snacks')->assertSee('5 eating occasions in total');
     }
@@ -282,8 +305,9 @@ class BalancedMealIdeasTest extends TestCase
     public function test_guests_cannot_generate_or_save_ideas(): void
     {
         $this->post(route('meal-ideas.store'), ['meal_type' => 'breakfast'])->assertRedirect(route('login'));
-        $this->post(route('saved-meals.store'), ['idea_index' => 0, 'batch_token' => str_repeat('0',64)])->assertRedirect(route('login'));
+        $this->post(route('saved-meals.store'), ['idea_index' => 0, 'batch_token' => str_repeat('0', 64)])->assertRedirect(route('login'));
     }
+
     public function test_real_generation_brief_requires_a_suitable_fat_source_only_when_needed(): void
     {
         $this->owner->nutritionProfile()->update([
@@ -293,23 +317,24 @@ class BalancedMealIdeasTest extends TestCase
             'resistance_training' => true, 'dietary_preference' => 'no_preference',
             'cooking_minutes' => 30, 'macro_mode' => 'goal', 'allergies' => null, 'foods_to_avoid' => null,
         ]);
-        \Illuminate\Support\Facades\DB::table('nutrition_calculator_settings')->updateOrInsert(['id' => 1], [
-            'parameters' => json_encode(\App\Services\Nutrition\NutritionCalculatorSettings::defaults(), JSON_THROW_ON_ERROR),
+        DB::table('nutrition_calculator_settings')->updateOrInsert(['id' => 1], [
+            'parameters' => json_encode(NutritionCalculatorSettings::defaults(), JSON_THROW_ON_ERROR),
             'revision' => 1, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        $this->mock(\App\Services\Recipes\RecipeGenerator::class, function ($mock) {
+        $this->mock(RecipeGenerator::class, function ($mock) {
             $mock->shouldReceive('generate')->once()->withArgs(function ($catalog, $count, $brief) {
                 $this->assertSame(3, $count);
                 $this->assertStringContainsString('include a suitable fat source', $brief);
                 $this->assertStringContainsString('do not automatically add more', $brief);
                 $this->assertStringContainsString("excluded by the user's choices", $brief);
                 $this->assertStringContainsString('actually', $brief);
+
                 return true;
             })->andReturn(array_map(fn ($n) => [
                 'name' => 'Catalog option '.$n, 'description' => 'Test catalog option.',
                 'instructions' => 'Prepare the listed ingredients.', 'servings' => 1,
-                'ingredients' => $this->ingredients->map(fn ($food, $i) => ['ingredient_id' => $food->id, 'quantity_g' => [30,60,10][$i]])->all(),
-            ], [1,2,3]));
+                'ingredients' => $this->ingredients->map(fn ($food, $i) => ['ingredient_id' => $food->id, 'quantity_g' => [30, 60, 10][$i]])->all(),
+            ], [1, 2, 3]));
         });
         $this->app->forgetInstance(MealIdeaGenerator::class);
         $batch = app(MealIdeaGenerator::class)->generate($this->owner, 'breakfast');
@@ -325,11 +350,11 @@ class BalancedMealIdeasTest extends TestCase
             'resistance_training' => true, 'dietary_preference' => 'no_preference',
             'cooking_minutes' => 30, 'macro_mode' => 'goal', 'allergies' => null, 'foods_to_avoid' => null,
         ]);
-        \Illuminate\Support\Facades\DB::table('nutrition_calculator_settings')->updateOrInsert(['id' => 1], [
-            'parameters' => json_encode(\App\Services\Nutrition\NutritionCalculatorSettings::defaults(), JSON_THROW_ON_ERROR),
+        DB::table('nutrition_calculator_settings')->updateOrInsert(['id' => 1], [
+            'parameters' => json_encode(NutritionCalculatorSettings::defaults(), JSON_THROW_ON_ERROR),
             'revision' => 1, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        $this->mock(\App\Services\Recipes\RecipeGenerator::class, function ($mock) {
+        $this->mock(RecipeGenerator::class, function ($mock) {
             $mock->shouldReceive('generate')->once()->withArgs(function ($catalog, $count, $brief) {
                 $this->assertSame(2, $count);
                 $this->assertStringContainsString('include a suitable fat source', $brief);
@@ -341,16 +366,16 @@ class BalancedMealIdeasTest extends TestCase
                 $this->assertStringContainsString('max_quantity_g', $brief);
                 $this->assertStringContainsString('protein_g_at_max_quantity', $brief);
                 $this->assertStringContainsString('at most 500 g', $brief);
+
                 return true;
             })->andReturn(array_map(fn ($n) => [
                 'name' => 'Catalog option '.$n, 'description' => 'Test catalog option.',
                 'instructions' => 'Prepare the listed ingredients.', 'servings' => 1,
-                'ingredients' => $this->ingredients->map(fn ($food, $i) => ['ingredient_id' => $food->id, 'quantity_g' => [30,60,10][$i]])->all(),
-            ], [1,2]));
+                'ingredients' => $this->ingredients->map(fn ($food, $i) => ['ingredient_id' => $food->id, 'quantity_g' => [30, 60, 10][$i]])->all(),
+            ], [1, 2]));
         });
         $this->app->forgetInstance(MealIdeaGenerator::class);
         $batch = app(MealIdeaGenerator::class)->generate($this->owner, 'breakfast', 2, ['Old rejected option']);
         $this->assertCount(2, $batch['ideas']);
     }
-
 }

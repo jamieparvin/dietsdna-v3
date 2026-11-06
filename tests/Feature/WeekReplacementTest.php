@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\EnsureSetupComplete;
 use App\Jobs\GenerateWeeklyMealDraft;
 use App\Models\Ingredient;
 use App\Models\MealPlanEntry;
@@ -12,10 +13,10 @@ use App\Services\Meals\MealIdeaGenerator;
 use App\Services\Meals\MealPlanWeekState;
 use App\Services\Meals\PlannedMealSnapshot;
 use App\Services\Meals\WeeklyMealPlanner;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -26,7 +27,9 @@ class WeekReplacementTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+
     private $ingredients;
+
     private int $generationCalls = 0;
 
     protected function beforeRefreshingDatabase(): void
@@ -39,6 +42,8 @@ class WeekReplacementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // This suite exercises meal behavior with minimal profiles; onboarding has its own route coverage.
+        $this->withoutMiddleware(EnsureSetupComplete::class);
         Http::preventStrayRequests();
         Queue::fake();
         $this->owner = User::factory()->create();
@@ -62,6 +67,7 @@ class WeekReplacementTest extends TestCase
             ]);
             $mock->shouldReceive('generate')->andReturnUsing(function ($user, $type) {
                 $this->generationCalls++;
+
                 return ['ideas' => array_map(fn ($n) => $this->idea($type.' option '.$n), [1, 2, 3])];
             });
         });
@@ -81,6 +87,7 @@ class WeekReplacementTest extends TestCase
     {
         $helper = app(PlannedMealSnapshot::class);
         $snapshot = $helper->fromIdea($this->idea($name), $this->ingredients);
+
         return SavedMeal::query()->create(['user_id' => $user->id, 'content_hash' => $helper->hash($snapshot), 'meal_type' => 'lunch', 'snapshot' => $snapshot]);
     }
 
@@ -99,6 +106,7 @@ class WeekReplacementTest extends TestCase
                 $this->entry($meal, $date, $slot);
             }
         }
+
         return $meal;
     }
 
@@ -106,6 +114,7 @@ class WeekReplacementTest extends TestCase
     {
         $this->actingAs($this->owner)->post(route('weekly-meals.store'), ['start_date' => '2026-11-11', 'mode' => 'replace'])
             ->assertSessionHasNoErrors()->assertRedirect();
+
         return WeeklyMealDraft::query()->where('user_id', $this->owner->id)->latest('id')->firstOrFail();
     }
 
@@ -114,6 +123,7 @@ class WeekReplacementTest extends TestCase
         $draft = $this->startReplacement();
         (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
         $this->assertSame('ready', $draft->fresh()->status);
+
         return $draft->fresh();
     }
 
@@ -291,9 +301,15 @@ class WeekReplacementTest extends TestCase
         $before = $this->ownPlan();
         foreach (['missing', 'duplicate', 'outside'] as $case) {
             $rows = $original;
-            if ($case === 'missing') { array_pop($rows); }
-            if ($case === 'duplicate') { $rows[1] = $rows[0]; }
-            if ($case === 'outside') { $rows[0]['date'] = '2026-11-16'; }
+            if ($case === 'missing') {
+                array_pop($rows);
+            }
+            if ($case === 'duplicate') {
+                $rows[1] = $rows[0];
+            }
+            if ($case === 'outside') {
+                $rows[0]['date'] = '2026-11-16';
+            }
             $draft->update(['proposals' => $rows]);
             $this->actingAs($this->owner)->post(route('weekly-meals.confirm', $draft->id), ['replace_confirmed' => 1])
                 ->assertSessionHasErrors('week');
@@ -322,7 +338,9 @@ class WeekReplacementTest extends TestCase
         $savedCount = SavedMeal::count();
         $dispatcher = MealPlanEntry::getEventDispatcher();
         MealPlanEntry::setEventDispatcher(clone $dispatcher);
-        MealPlanEntry::creating(function () { throw new RuntimeException('Simulated entry write failure'); });
+        MealPlanEntry::creating(function () {
+            throw new RuntimeException('Simulated entry write failure');
+        });
         try {
             app(WeeklyMealPlanner::class)->confirm($draft->id, $this->owner);
             $this->fail('Expected the simulated database write failure.');

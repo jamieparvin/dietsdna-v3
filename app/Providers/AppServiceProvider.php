@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Notifications\WelcomeNotification;
+use App\Services\Onboarding;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
 
@@ -19,6 +21,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        View::composer(['layouts.app', 'nutrition-profile.edit', 'food-preferences.edit', 'weekly-meals.create'], function ($view) {
+            if (auth()->check() && ! array_key_exists('setup', $view->getData())) {
+                $view->with('setup', app(Onboarding::class)->state(auth()->user()));
+            }
+        });
+
         ResetPassword::toMailUsing(function ($notifiable, string $token) {
             $broker = config('auth.defaults.passwords');
             $minutes = (int) config("auth.passwords.{$broker}.expire", 60);

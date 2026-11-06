@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ingredient;
+use App\Services\Onboarding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -31,8 +32,9 @@ class FoodPreferenceController extends Controller
 
     public function update(Request $request)
     {
+        $wasComplete = app(Onboarding::class)->state($request->user())['complete'];
         $validated = $request->validate([
-            'preferences' => ['required', 'array', 'max:1000'],
+            'preferences' => ['sometimes', 'array', 'max:1000'],
             'preferences.*' => [
                 'required',
                 'string',
@@ -40,7 +42,7 @@ class FoodPreferenceController extends Controller
             ],
         ]);
 
-        $preferences = $validated['preferences'];
+        $preferences = $validated['preferences'] ?? [];
 
         foreach (array_keys($preferences) as $key) {
             if (! preg_match('/^[a-f0-9]{64}$/', (string) $key)) {
@@ -69,13 +71,13 @@ class FoodPreferenceController extends Controller
 
             if (array_diff(array_keys($preferences), $allowedKeys)) {
                 throw ValidationException::withMessages([
-                    'preferences' =>
-                        'The food library changed. Reload the page '
+                    'preferences' => 'The food library changed. Reload the page '
                         .'and check your choices.',
                 ]);
             }
 
             $timestamp = now();
+            DB::table('users')->where('id', $userId)->update(['food_preferences_reviewed_at' => $timestamp]);
 
             foreach ($preferences as $key => $preference) {
                 if ($preference === 'neutral') {
@@ -103,7 +105,7 @@ class FoodPreferenceController extends Controller
         });
 
         return redirect()
-            ->route('food-preferences.edit')
+            ->route($wasComplete ? 'food-preferences.edit' : 'setup')
             ->with('status', 'Your food preferences have been saved.');
     }
 
@@ -140,8 +142,7 @@ class FoodPreferenceController extends Controller
                     ),
                 ];
             })
-            ->filter(fn ($food) =>
-                $food->is_active || in_array($food->id, $savedKeys, true)
+            ->filter(fn ($food) => $food->is_active || in_array($food->id, $savedKeys, true)
             )
             ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
             ->values();

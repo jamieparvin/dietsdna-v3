@@ -44,6 +44,7 @@ class MacroPreferencesTest extends TestCase
             'goal' => 'maintain_weight', 'planning_context' => 'general_adult',
             'resistance_training' => false, 'meals_per_day' => 5, 'snacks_per_day' => 1,
         ]);
+
         return $user;
     }
 
@@ -115,6 +116,7 @@ class MacroPreferencesTest extends TestCase
 
     public function test_profile_view_renders_explanation_and_the_separate_macro_form(): void
     {
+        $this->owner->forceFill(['food_preferences_reviewed_at' => now()])->save();
         $this->actingAs($this->owner)->get(route('nutrition-profile.edit'))
             ->assertOk()->assertSee('Your macro targets')->assertSee('How percentages become grams')
             ->assertSee('macro-preferences-form', false)->assertSee('Optional snacks');

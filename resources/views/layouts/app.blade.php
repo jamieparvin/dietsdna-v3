@@ -131,6 +131,24 @@
             text-transform: uppercase;
         }
 
+        .nav-link.nav-disabled,
+        .nav-link.nav-disabled:hover {
+            color: #b8cfc2;
+            background: transparent;
+            cursor: default;
+        }
+
+        .nav-lock {
+            flex-shrink: 0;
+        }
+
+        .nav-setup-help {
+            margin: 12px 14px 18px;
+            color: #b8cfc2;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
         .nav-link,
         .nav-pending {
             display: flex;
@@ -298,6 +316,26 @@
             color: #53675e;
             font-size: 13px;
         }
+
+        .guidance-notice {
+            margin: 18px 0;
+            padding: 14px 18px;
+            border: 1px solid #d5e2d8;
+            border-radius: 12px;
+            background: #f0f5f1;
+            color: #284e3e;
+        }
+
+        .guidance-notice.guidance-allergy {
+            border-color: #dfcfa8;
+            background: #fff8e9;
+            color: #59451f;
+        }
+
+        .guidance-notice h2 { margin: 0 0 6px; font-size: 14px; }
+        .guidance-notice p { margin: 6px 0 0; color: inherit; font-size: 13px; line-height: 1.7; }
+        .bmi-context p { margin: 6px 0; color: #53675e; font-size: 13px; line-height: 1.7; }
+        .guidance-estimate { margin: 16px 0; color: #53675e; font-size: 13px; line-height: 1.7; }
 
         /* Authentication pages */
 
@@ -620,54 +658,107 @@
                         </a>
 
                         <a
-                            href="{{ route('meal-ideas.index') }}"
-                            class="nav-link {{ request()->routeIs('meal-ideas.*') ? 'active' : '' }}"
+                            @if($setup['complete'])
+                                href="{{ route('meal-ideas.index') }}"
+                            @else
+                                role="link" aria-disabled="true" aria-describedby="setup-navigation-help"
+                            @endif
+                            class="nav-link {{ !$setup['complete'] ? 'nav-disabled' : '' }} {{ request()->routeIs('meal-ideas.*') ? 'active' : '' }}"
                             @if(request()->routeIs('meal-ideas.*'))
                                 aria-current="page"
                             @endif
                         >
                             Meal ideas
+                            @if(!$setup['complete'])
+                                <svg class="nav-lock" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <rect x="5" y="10" width="14" height="11" rx="2" />
+                                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                                </svg>
+                            @endif
                         </a>
 
                         <a
-                            href="{{ route('saved-meals.index') }}"
-                            class="nav-link {{ request()->routeIs('saved-meals.*') ? 'active' : '' }}"
+                            @if($setup['complete'])
+                                href="{{ route('saved-meals.index') }}"
+                            @else
+                                role="link" aria-disabled="true" aria-describedby="setup-navigation-help"
+                            @endif
+                            class="nav-link {{ !$setup['complete'] ? 'nav-disabled' : '' }} {{ request()->routeIs('saved-meals.*') ? 'active' : '' }}"
                             @if(request()->routeIs('saved-meals.*'))
                                 aria-current="page"
                             @endif
                         >
                             Saved meals
+                            @if(!$setup['complete'])
+                                <svg class="nav-lock" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <rect x="5" y="10" width="14" height="11" rx="2" />
+                                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                                </svg>
+                            @endif
                         </a>
 
                         <a
-                            href="{{ route('meal-plan.index') }}"
-                            class="nav-link {{ request()->routeIs('meal-plan.*', 'weekly-meals.*') ? 'active' : '' }}"
+                            @if($setup['complete'])
+                                href="{{ route('meal-plan.index') }}"
+                            @else
+                                role="link" aria-disabled="true" aria-describedby="setup-navigation-help"
+                            @endif
+                            class="nav-link {{ !$setup['complete'] ? 'nav-disabled' : '' }} {{ request()->routeIs('meal-plan.*', 'weekly-meals.*') ? 'active' : '' }}"
                             @if(request()->routeIs('meal-plan.*', 'weekly-meals.*'))
                                 aria-current="page"
                             @endif
                         >
                             Meal plan
+                            @if(!$setup['complete'])
+                                <svg class="nav-lock" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <rect x="5" y="10" width="14" height="11" rx="2" />
+                                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                                </svg>
+                            @endif
                         </a>
 
                         <a
-                            href="{{ route('shopping-list.index') }}"
-                            class="nav-link {{ request()->routeIs('shopping-list.*') ? 'active' : '' }}"
+                            @if($setup['complete'])
+                                href="{{ route('shopping-list.index') }}"
+                            @else
+                                role="link" aria-disabled="true" aria-describedby="setup-navigation-help"
+                            @endif
+                            class="nav-link {{ !$setup['complete'] ? 'nav-disabled' : '' }} {{ request()->routeIs('shopping-list.*') ? 'active' : '' }}"
                             @if(request()->routeIs('shopping-list.*'))
                                 aria-current="page"
                             @endif
                         >
                             Shopping list
+                            @if(!$setup['complete'])
+                                <svg class="nav-lock" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <rect x="5" y="10" width="14" height="11" rx="2" />
+                                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                                </svg>
+                            @endif
                         </a>
 
                         <a
-                            href="{{ route('progress.index') }}"
-                            class="nav-link {{ request()->routeIs('progress.*') ? 'active' : '' }}"
+                            @if($setup['complete'])
+                                href="{{ route('progress.index') }}"
+                            @else
+                                role="link" aria-disabled="true" aria-describedby="setup-navigation-help"
+                            @endif
+                            class="nav-link {{ !$setup['complete'] ? 'nav-disabled' : '' }} {{ request()->routeIs('progress.*') ? 'active' : '' }}"
                             @if(request()->routeIs('progress.*'))
                                 aria-current="page"
                             @endif
                         >
                             Progress
+                            @if(!$setup['complete'])
+                                <svg class="nav-lock" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                    <rect x="5" y="10" width="14" height="11" rx="2" />
+                                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                                </svg>
+                            @endif
                         </a>
+                        @if(!$setup['complete'])
+                            <p id="setup-navigation-help" class="nav-setup-help">Complete your nutrition profile and food preferences to unlock these features.</p>
+                        @endif
                     @endif
 
                     @foreach($upcomingItems as $item)

@@ -1,6 +1,9 @@
 @extends('layouts.app')
 @section('title', 'Generate my week')
 @section('content')
+    @if(!$setup['complete'] || request()->routeIs('weekly-meals.create'))
+        @include('onboarding-progress', ['showSetupGuidance' => false])
+    @endif
 @include('weekly-meals.styles')
 @php
     $calendarMonday = \Carbon\CarbonImmutable::now('Europe/London')->startOfWeek(1)->startOfDay();
@@ -83,21 +86,23 @@
     <h1>Generate my week</h1>
     <p class="wm-muted">Choose a week and build meals around your food preferences and nutrition goals.</p>
     <div class="wm-toolbar"><a href="{{ route('meal-plan.index', ['date' => $start->toDateString()]) }}">Back to meal plan</a></div>
-    @if($errors->any())
-        <div class="wm-notice wm-error" role="alert">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
+    @include('partials.food-allergy-notice')
     @if($blocked)
-        <div class="wm-panel"><p>{{ $blocked }}</p><a href="{{ route('nutrition-profile.edit') }}">View nutrition profile</a></div>
+        <section class="wm-panel" aria-labelledby="generation-blocked-heading">
+            <h2 id="generation-blocked-heading">Meal generation unavailable</h2>
+            <p role="status">{{ $blocked }}</p>
+            <p>Your setup is complete. Automatic meal generation is currently unavailable. Keep your answers and food choices accurate; finishing setup does not mean meals can always be generated.</p>
+            <a href="{{ route('nutrition-profile.edit') }}">View nutrition profile</a>
+        </section>
     @else
         @if(!empty($source['context']['variety_warnings']))
-            <p class="wm-notice" role="status">Protein variety grouping needs review for: {{ implode(', ', $source['context']['variety_warnings']) }}. These foods remain available; unreviewed preparations may be counted separately.</p>
+            <p class="wm-notice" role="status">The food library needs a variety review for: {{ implode(', ', $source['context']['variety_warnings']) }}. These foods remain available, but suggestions may offer less protein variety.</p>
         @endif
         <section class="wm-panel">
             <h2>Build your week</h2>
+            @if($source['context']['cooking_minutes'] ?? null)
+                <p class="wm-muted">Time available per meal: {{ $source['context']['cooking_minutes'] }} minutes including preparation and cooking. Suggested times are AI estimates, not verified limits.</p>
+            @endif
             <p class="wm-muted">
                 {{ $source['context']['meal_count'] }} full meals
                 @if(($source['context']['snack_count'] ?? 0) > 0)
@@ -137,6 +142,7 @@
                     <button type="submit" class="wm-button" id="weekly-start-button">Generate weekly preview</button>
                 </div>
                 <p class="ww-week-note" id="weekly-week-note">Each plan covers a full week, Monday to Sunday.</p>
+                @include('partials.nutrition-estimate-disclaimer')
             </form>
             <p class="ww-description">Review the meals before adding them to your plan. You can then swap any meals you don’t like with your saved options.</p>
             <p class="ww-description">Your meals are prepared in the background and may take a few minutes. Your current plan stays in place until you approve the preview.</p>

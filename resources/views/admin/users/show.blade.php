@@ -165,7 +165,7 @@
         <article class="cu-stat">
             <span class="cu-stat-label">Profile weight</span>
             <strong class="cu-value">
-                {{ $format($profile?->weight_kg) }} <small>kg</small>
+                {{ \App\Services\Nutrition\WeightUnits::format($profile?->weight_kg) }} <small>lbs</small>
             </strong>
             <p class="cu-muted">Weight used in the nutrition profile</p>
         </article>
@@ -173,8 +173,8 @@
         <article class="cu-stat">
             <span class="cu-stat-label">Latest weigh-in</span>
             <strong class="cu-value">
-                {{ $format($latestWeightEntry?->weight_kg, 2) }}
-                <small>kg</small>
+                {{ \App\Services\Nutrition\WeightUnits::format($latestWeightEntry?->weight_kg) }}
+                <small>lbs</small>
             </strong>
             <p class="cu-muted">
                 {{ $latestWeightEntry
@@ -237,7 +237,7 @@
                         <dd>
                             {{ $profile->target_weight_kg === null
                                 ? 'Not set'
-                                : $format($profile->target_weight_kg).' kg' }}
+                                : \App\Services\Nutrition\WeightUnits::format($profile->target_weight_kg).' lbs' }}
                         </dd>
                     </div>
                     <div>
@@ -248,7 +248,7 @@
                         </dd>
                     </div>
                     <div>
-                        <dt>Cooking time per meal</dt>
+                        <dt>Time available per meal</dt>
                         <dd>
                             {{ $profile->cooking_minutes === null
                                 ? 'Not set'
@@ -434,12 +434,12 @@
                 <dl class="cu-details">
                     <div>
                         <dt>Starting weight</dt>
-                        <dd>{{ $format($firstWeightEntry->weight_kg, 2) }} kg</dd>
+                        <dd>{{ \App\Services\Nutrition\WeightUnits::format($firstWeightEntry->weight_kg) }} lbs</dd>
                     </div>
                     <div>
                         <dt>Change since first entry</dt>
                         <dd>
-                            {{ $weightChange > 0 ? '+' : '' }}{{ $format($weightChange, 2) }} kg
+                            {{ $weightChange > 0 ? '+' : '' }}{{ \App\Services\Nutrition\WeightUnits::format($weightChange) }} lbs
                         </dd>
                     </div>
                 </dl>
@@ -452,7 +452,7 @@
                             <time datetime="{{ $weight->recorded_on->format('Y-m-d') }}">
                                 {{ $weight->recorded_on->format('j M Y') }}
                             </time>
-                            <strong>{{ $format($weight->weight_kg, 2) }} kg</strong>
+                            <strong>{{ \App\Services\Nutrition\WeightUnits::format($weight->weight_kg) }} lbs</strong>
                         </li>
                     @endforeach
                 </ul>
