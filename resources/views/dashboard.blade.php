@@ -112,7 +112,7 @@
 .dn-profile div.dn-pattern-row {flex-wrap:wrap;gap:6px 14px;}
 .dn-profile .dn-pattern-row dd {white-space:nowrap;margin-left:auto;}
 
-.dn-progress-measures {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:16px;align-items:start;}
+.dn-progress-measures {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:16px;align-items:stretch;}
 .dn-progress-measures .dn-goal {min-width:0;}
 .dn-progress-measures .dn-eyebrow {display:block;min-height:3em;}
 @media(max-width:600px) {.dn-progress-measures {grid-template-columns:1fr;}}
@@ -417,6 +417,11 @@ aria-current="date"
                 <div class="dn-goal" aria-label="Latest BMI">
                     <span class="dn-eyebrow">Latest BMI</span>
                     <h3 data-bmi-value style="font-size:30px;margin-bottom:6px;">{{ $bmi['value'] === null ? 'Not available' : number_format($bmi['value'], 1) }}</h3>
+                    @if($bmi['value'] !== null && $bmi['date'])
+                        <p class="dn-muted" style="margin:0;">
+                            <time datetime="{{ $bmi['date'] }}">{{ \Carbon\CarbonImmutable::parse($bmi['date'])->format('j F Y') }}</time>
+                        </p>
+                    @endif
                 </div>
             </div>
             @include('partials.bmi-context')
