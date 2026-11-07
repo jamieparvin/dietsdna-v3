@@ -76,7 +76,7 @@ class DashboardTest extends TestCase
     {
         $response = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk();
         $response->assertViewIs('onboarding')->assertSee('Your setup is complete')
-            ->assertSee('Continue to weekly preview')->assertDontSee('Today’s menu');
+            ->assertSee('not enough eligible ingredients')->assertDontSee('Continue to weekly preview')->assertDontSee('Today’s menu');
     }
 
     public function test_only_todays_owned_snapshots_are_counted_without_rewriting_them(): void

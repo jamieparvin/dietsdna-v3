@@ -19,10 +19,11 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $setup = $onboarding->state($user);
+        $generationBlocked = $setup['complete'] ? $onboarding->generationBlock($user) : null;
         if (! $setup['complete'] || ! MealPlanEntry::where('user_id', $user->id)->exists()) {
             $preview = $setup['complete'] ? WeeklyMealDraft::where('user_id', $user->id)->whereIn('status', ['queued', 'generating', 'ready'])->latest('id')->first() : null;
 
-            return view('onboarding', compact('setup', 'preview'));
+            return view('onboarding', compact('setup', 'preview', 'generationBlocked'));
         }
         $today = CarbonImmutable::now('Europe/London')->startOfDay();
         $date = $today->toDateString();
@@ -77,6 +78,6 @@ class DashboardController extends Controller
         $weekPlannedDays = collect($weekDays)->where('count', '>', 0)->count();
 
         return view('dashboard', compact('today', 'date', 'profile', 'targets', 'rows', 'totals',
-            'metrics', 'weekDays', 'weekStart', 'savedCount', 'patternCount', 'currentFilled', 'plannedCount', 'weekPlannedDays', 'setup', 'bmi'));
+            'metrics', 'weekDays', 'weekStart', 'savedCount', 'patternCount', 'currentFilled', 'plannedCount', 'weekPlannedDays', 'setup', 'bmi', 'generationBlocked'));
     }
 }

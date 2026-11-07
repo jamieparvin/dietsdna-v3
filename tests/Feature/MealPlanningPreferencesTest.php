@@ -12,6 +12,7 @@ use App\Services\Meals\MealIdeaBatchGenerator;
 use App\Services\Meals\MealIdeaGenerator;
 use App\Services\Meals\MealPortionBalancer;
 use App\Services\Meals\MealPreparationTime;
+use App\Services\Meals\PlannedMealSnapshot;
 use App\Services\Meals\WeeklyMealPlanner;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -175,7 +176,7 @@ class MealPlanningPreferencesTest extends TestCase
         $this->actingAs($user)->get(route('weekly-meals.show', $draft))->assertOk()->assertSee('Estimated total time: 10 minutes')->assertSee('AI estimate; actual time may vary');
     }
 
-    public function test_time_preference_requires_combined_prep_and_cook_estimates_in_the_prompt_schema_and_single_ideas(): void
+    public function test_time_preference_requests_honest_combined_prep_and_cook_estimates_with_nullable_schema_fields(): void
     {
         $user = $this->member(3, 0, 15);
         $foods = $this->foods();
@@ -192,27 +193,27 @@ class MealPlanningPreferencesTest extends TestCase
 
             return in_array('estimated_prep_minutes', $schema['required'], true)
                 && in_array('estimated_cook_minutes', $schema['required'], true)
+                && in_array('null', $schema['properties']['estimated_prep_minutes']['type'], true)
                 && $brief['time_available_per_meal_minutes'] === 15
                 && str_contains($request['instructions'], 'preparation and cooking');
         });
         Http::assertSentCount(1);
     }
 
-    public function test_single_ideas_reject_over_budget_estimates_even_when_each_component_is_under_the_limit(): void
+    public function test_single_ideas_keep_honest_over_preference_estimates_without_a_paid_retry(): void
     {
         $user = $this->member(3, 0, 10);
         $this->fakeMeals($user, $this->foods(), 8, 8);
-        try {
-            app(MealIdeaBatchGenerator::class)->generate($user, 'lunch');
-            $this->fail('Over-budget options must not be accepted.');
-        } catch (ValidationException $exception) {
-            $this->assertStringContainsString('10-minute preparation and cooking preference', implode(' ', $exception->errors()['generation']));
+        $batch = app(MealIdeaBatchGenerator::class)->generate($user, 'lunch');
+        $this->assertCount(3, $batch['ideas']);
+        foreach ($batch['ideas'] as $idea) {
+            $this->assertSame(16, MealPreparationTime::total($idea));
         }
-        Http::assertSentCount(2);
+        Http::assertSentCount(1);
         $this->assertDatabaseCount('saved_meals', 0);
     }
 
-    public function test_weekly_time_failure_finishes_as_failed_with_an_actionable_message_without_touching_existing_meals(): void
+    public function test_weekly_over_time_fallback_finishes_ready_without_touching_existing_meals(): void
     {
         $user = $this->member(2, 0, 10);
         $this->fakeMeals($user, $this->foods(), 8, 8);
@@ -220,13 +221,12 @@ class MealPlanningPreferencesTest extends TestCase
         $entry = MealPlanEntry::create(['user_id' => $user->id, 'saved_meal_id' => $saved->id, 'plan_date' => '2026-10-01', 'slot' => 'lunch', 'snapshot' => $saved->snapshot]);
         $before = $entry->fresh()->getAttributes();
         $draft = $this->draft($user);
-        try {
-            (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
-            $this->fail('No timed weekly preview should be accepted.');
-        } catch (ValidationException) {
-            $this->assertSame('failed', $draft->fresh()->status);
-            $this->assertStringContainsString('preparation and cooking time within your 10 minutes', $draft->fresh()->error);
+        (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
+        $this->assertSame('ready', $draft->fresh()->status);
+        foreach ($draft->fresh()->proposals as $row) {
+            $this->assertSame(16, MealPreparationTime::total($row['snapshot']));
         }
+        $this->actingAs($user)->get(route('weekly-meals.show', $draft))->assertOk()->assertSee('This meal may take longer than your preferred time.');
         $this->assertSame($before, $entry->fresh()->getAttributes());
         $this->assertDatabaseCount('saved_meals', 1);
         Http::assertSentCount(2);
@@ -316,24 +316,25 @@ class MealPlanningPreferencesTest extends TestCase
         $this->assertSame(0, $xpath->query('//select[@name="cooking_minutes" and @required]')->length);
     }
 
-    public function test_missing_timing_estimates_fail_clearly_instead_of_claiming_a_time_limit(): void
+    public function test_missing_timing_estimates_keep_eligible_ideas_and_display_time_unavailable(): void
     {
         Http::preventStrayRequests();
         config(['services.openai.key' => 'test-key', 'services.openai.recipe_model' => 'test-model']);
         $user = $this->member(3, 0, 15);
         $foods = $this->foods();
         Http::fake(['api.openai.com/v1/responses' => Http::response($this->response($this->recipes($foods, app(MealIdeaGenerator::class)->context($user, 'lunch')['meal_targets'])))]);
-        try {
-            app(MealIdeaBatchGenerator::class)->generate($user, 'lunch');
-            $this->fail('Unknown timing must not be accepted as within budget.');
-        } catch (ValidationException $exception) {
-            $this->assertStringContainsString('did not include valid preparation and cooking estimates', implode(' ', $exception->errors()['generation']));
+        $batch = app(MealIdeaBatchGenerator::class)->generate($user, 'lunch');
+        $this->assertCount(3, $batch['ideas']);
+        foreach ($batch['ideas'] as $idea) {
+            $this->assertNull(MealPreparationTime::total($idea));
         }
-        Http::assertSentCount(1);
+        $this->actingAs($user)->post(route('meal-ideas.store'), ['meal_type' => 'lunch'])->assertSessionHasNoErrors();
+        $this->get(route('meal-ideas.index'))->assertOk()->assertSee('Time unavailable');
+        Http::assertSentCount(2);
         $this->assertDatabaseCount('saved_meals', 0);
     }
 
-    public function test_filtered_timed_pools_can_be_rebalanced_without_extra_ai_or_losing_the_time_preference(): void
+    public function test_timed_pools_keep_all_fallbacks_and_prefer_within_time_when_rebalanced_without_extra_ai(): void
     {
         Http::preventStrayRequests();
         config(['services.openai.key' => 'test-key', 'services.openai.recipe_model' => 'test-model']);
@@ -356,7 +357,7 @@ class MealPlanningPreferencesTest extends TestCase
         (new GenerateWeeklyMealDraft($draft->id))->handle($planner);
         $draft->refresh();
         foreach ($draft->generated as $pool) {
-            $this->assertCount(1, $pool);
+            $this->assertCount(3, $pool);
         }
         $planner->rebalanceStored($draft);
         $this->assertSame('ready', $draft->fresh()->status);
@@ -371,5 +372,225 @@ class MealPlanningPreferencesTest extends TestCase
         $this->assertSame(0, MealPreparationTime::total(['estimated_prep_minutes' => 0, 'estimated_cook_minutes' => 0]));
         $this->assertTrue(MealPreparationTime::fits(['estimated_prep_minutes' => 0, 'estimated_cook_minutes' => 0], 10));
         $this->assertFalse(MealPreparationTime::fits([], 10));
+    }
+
+    public static function preferredTimes(): array
+    {
+        return ['10 minutes' => [10], '15 minutes' => [15], '20 minutes' => [20], '30 minutes' => [30]];
+    }
+
+    #[DataProvider('preferredTimes')]
+    public function test_all_time_preferences_allow_honest_over_time_ideas_and_weekly_previews_without_time_retries(int $minutes): void
+    {
+        $user = $this->member(3, 0, $minutes);
+        $this->fakeMeals($user, $this->foods(), 12, 28);
+        $targets = app(WeeklyMealPlanner::class)->source($user)['context']['targets'];
+        $this->actingAs($user)->post(route('meal-ideas.store'), ['meal_type' => 'lunch'])->assertSessionHasNoErrors();
+        $this->get(route('meal-ideas.index'))->assertOk()->assertSee('Estimated total time: 40 minutes')->assertSee('This meal may take longer than your preferred time.');
+        $draft = $this->draft($user);
+        (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
+        $this->assertSame('ready', $draft->fresh()->status);
+        app(MealPortionBalancer::class)->assertFits($draft->fresh()->proposals, [], $targets);
+        foreach ($draft->fresh()->proposals as $row) {
+            $this->assertSame(12, $row['snapshot']['estimated_prep_minutes']);
+            $this->assertSame(28, $row['snapshot']['estimated_cook_minutes']);
+        }
+        Http::assertSentCount(4);
+        $this->assertDatabaseCount('saved_meals', 0);
+        $this->assertDatabaseCount('meal_plan_entries', 0);
+    }
+
+    public function test_closest_estimated_times_are_preferred_for_ideas_and_weeks_when_none_fit(): void
+    {
+        Http::preventStrayRequests();
+        config(['services.openai.key' => 'test-key', 'services.openai.recipe_model' => 'test-model']);
+        $user = $this->member(3, 0, 10);
+        $foods = $this->foods();
+        Http::fake(['api.openai.com/v1/responses' => function ($request) use ($user, $foods) {
+            $input = json_decode($request['input'], true);
+            $brief = json_decode(substr($input['brief'], strpos($input['brief'], "\n{")), true);
+            $recipes = $this->recipes($foods, app(MealIdeaGenerator::class)->context($user, $brief['meal_type'])['meal_targets']);
+            foreach ($recipes as $index => &$recipe) {
+                $recipe['estimated_prep_minutes'] = 5;
+                $recipe['estimated_cook_minutes'] = [40, 20, 15][$index];
+            }
+            unset($recipe);
+
+            return Http::response($this->response($recipes));
+        }]);
+        $batch = app(MealIdeaBatchGenerator::class)->generate($user, 'lunch');
+        $this->assertSame([20, 25, 45], array_map(fn ($idea) => MealPreparationTime::total($idea), $batch['ideas']));
+        $draft = $this->draft($user);
+        (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
+        $this->assertSame('ready', $draft->fresh()->status);
+        foreach ($draft->fresh()->proposals as $row) {
+            $this->assertSame(20, MealPreparationTime::total($row['snapshot']));
+        }
+        Http::assertSentCount(4);
+    }
+
+    public function test_weekly_missing_timing_is_accepted_and_displayed_without_fabricating_estimates(): void
+    {
+        Http::preventStrayRequests();
+        config(['services.openai.key' => 'test-key', 'services.openai.recipe_model' => 'test-model']);
+        $user = $this->member(3, 0, 10);
+        $foods = $this->foods();
+        Http::fake(['api.openai.com/v1/responses' => function ($request) use ($user, $foods) {
+            $input = json_decode($request['input'], true);
+            $brief = json_decode(substr($input['brief'], strpos($input['brief'], "\n{")), true);
+
+            return Http::response($this->response($this->recipes($foods, app(MealIdeaGenerator::class)->context($user, $brief['meal_type'])['meal_targets'])));
+        }]);
+        $draft = $this->draft($user);
+        (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
+        $this->assertSame('ready', $draft->fresh()->status);
+        foreach ($draft->fresh()->proposals as $row) {
+            $this->assertNull(MealPreparationTime::total($row['snapshot']));
+        }
+        $this->actingAs($user)->get(route('weekly-meals.show', $draft))->assertOk()->assertSee('Time unavailable')->assertDontSee('This meal may take longer than your preferred time.');
+        Http::assertSentCount(3);
+    }
+
+    public function test_time_preference_does_not_allow_excluded_ingredients_or_add_schema_retries(): void
+    {
+        Http::preventStrayRequests();
+        config(['services.openai.key' => 'test-key', 'services.openai.recipe_model' => 'test-model']);
+        $user = $this->member(3, 0, 10);
+        $foods = $this->foods();
+        DB::table('user_food_preferences')->insert(['user_id' => $user->id, 'food_key' => $foods['Fat B']->preferenceFoodKey(), 'preference' => 'excluded', 'created_at' => now(), 'updated_at' => now()]);
+        Http::fake(['api.openai.com/v1/responses' => function ($request) use ($user, $foods) {
+            $input = json_decode($request['input'], true);
+            $this->assertNotContains($foods['Fat B']->id, array_column($input['ingredient_catalog'], 'id'));
+            $recipes = $this->recipes($foods, app(MealIdeaGenerator::class)->context($user, 'lunch')['meal_targets']);
+            foreach ($recipes as &$recipe) {
+                $recipe['estimated_prep_minutes'] = 10;
+                $recipe['estimated_cook_minutes'] = 30;
+            }
+            unset($recipe);
+
+            return Http::response($this->response($recipes));
+        }]);
+        $this->actingAs($user)->post(route('meal-ideas.store'), ['meal_type' => 'lunch'])->assertSessionHasErrors('generation');
+        Http::assertSentCount(1);
+        $this->assertDatabaseCount('saved_meals', 0);
+    }
+
+    public function test_swaps_prefer_closest_times_keep_unknown_options_and_exclusions_and_preserve_saved_portions(): void
+    {
+        $user = $this->member(3, 0, 10);
+        $foods = $this->foods();
+        $this->fakeMeals($user, $foods);
+        $batch = app(MealIdeaBatchGenerator::class)->generate($user, 'lunch');
+        $helper = app(PlannedMealSnapshot::class);
+        $meals = [];
+        foreach ([40, 20, null] as $index => $minutes) {
+            $snapshot = $batch['ideas'][$index];
+            $snapshot['name'] = ['Longer meal', 'Closest meal', 'Unknown time'][$index];
+            unset($snapshot['estimated_prep_minutes'], $snapshot['estimated_cook_minutes']);
+            if ($minutes !== null) {
+                $snapshot['estimated_prep_minutes'] = 5;
+                $snapshot['estimated_cook_minutes'] = $minutes - 5;
+            }
+            $meals[] = SavedMeal::create(['user_id' => $user->id, 'meal_type' => 'lunch', 'content_hash' => $helper->hash($snapshot), 'snapshot' => $snapshot]);
+        }
+        $entry = MealPlanEntry::create(['user_id' => $user->id, 'plan_date' => '2026-11-09', 'slot' => 'lunch', 'snapshot' => $batch['ideas'][0]]);
+        $forbidden = $foods['Protein']->replicate();
+        $forbidden->food_code = 'Forbidden';
+        $forbidden->name = 'Forbidden';
+        $forbidden->save();
+        DB::table('user_food_preferences')->insert(['user_id' => $user->id, 'food_key' => $forbidden->preferenceFoodKey(), 'preference' => 'excluded', 'created_at' => now(), 'updated_at' => now()]);
+        $bad = $batch['ideas'][0];
+        $bad['name'] = 'Excluded fast meal';
+        $bad['ingredients'][0]['ingredient_id'] = $forbidden->id;
+        $bad['ingredients'][0]['name'] = $forbidden->name;
+        $bad['ingredients'][0]['food_key'] = MealIdeaGenerator::foodKey($forbidden);
+        $bad['estimated_prep_minutes'] = 1;
+        $bad['estimated_cook_minutes'] = 1;
+        $excluded = SavedMeal::create(['user_id' => $user->id, 'meal_type' => 'lunch', 'content_hash' => $helper->hash($bad), 'snapshot' => $bad]);
+        $response = $this->actingAs($user)->get(route('meal-plan.swap', $entry))->assertOk()
+            ->assertSee('This meal may take longer than your preferred time.')->assertSee('Time unavailable')->assertDontSee('Excluded fast meal');
+        $this->assertSame(['Closest meal', 'Longer meal', 'Unknown time'], array_map(fn ($meal) => $meal->snapshot['name'], $response->viewData('meals')->items()));
+        $token = $helper->entryToken($entry);
+        $this->put(route('meal-plan.swap.update', $entry), ['saved_meal_id' => $excluded->id, 'entry_token' => $token])->assertSessionHasErrors('meal');
+        $this->put(route('meal-plan.swap.update', $entry), ['saved_meal_id' => $meals[1]->id, 'entry_token' => $token])->assertSessionHasNoErrors();
+        $this->assertSame($meals[1]->snapshot, $entry->fresh()->snapshot);
+        $this->assertSame(20, MealPreparationTime::total($entry->fresh()->snapshot));
+        Http::assertSentCount(1);
+    }
+
+    public static function unknownTimes(): array
+    {
+        return ['unknown' => [null, null], 'partial' => [5, null], 'invalid estimate' => ['quick', -1]];
+    }
+
+    #[DataProvider('unknownTimes')]
+    public function test_unusable_timing_metadata_does_not_reject_eligible_nutrition_or_trigger_a_retry(mixed $prep, mixed $cook): void
+    {
+        Http::preventStrayRequests();
+        config(['services.openai.key' => 'test-key', 'services.openai.recipe_model' => 'test-model']);
+        $user = $this->member(3, 0, 10);
+        $foods = $this->foods();
+        $recipes = $this->recipes($foods, app(MealIdeaGenerator::class)->context($user, 'lunch')['meal_targets']);
+        foreach ($recipes as &$recipe) {
+            $recipe['estimated_prep_minutes'] = $prep;
+            $recipe['estimated_cook_minutes'] = $cook;
+        }
+        unset($recipe);
+        Http::fake(['api.openai.com/v1/responses' => Http::response($this->response($recipes))]);
+        $batch = app(MealIdeaBatchGenerator::class)->generate($user, 'lunch');
+        $this->assertCount(3, $batch['ideas']);
+        foreach ($batch['ideas'] as $idea) {
+            $this->assertNull(MealPreparationTime::total($idea));
+        }
+        Http::assertSentCount(1);
+    }
+
+    public function test_a_slower_numerically_feasible_option_remains_available_when_fast_candidates_cannot_meet_targets(): void
+    {
+        Http::preventStrayRequests();
+        config(['services.openai.key' => 'test-key', 'services.openai.recipe_model' => 'test-model']);
+        $user = $this->member(3, 0, 10);
+        $foods = $this->foods();
+        Http::fake(['api.openai.com/v1/responses' => function ($request) use ($user, $foods) {
+            $input = json_decode($request['input'], true);
+            $brief = json_decode(substr($input['brief'], strpos($input['brief'], "\n{")), true);
+            $target = app(MealIdeaGenerator::class)->context($user, $brief['meal_type'])['meal_targets'];
+            $recipes = $this->recipes($foods, $target);
+            foreach ($recipes as $index => &$recipe) {
+                $recipe['estimated_prep_minutes'] = 2;
+                $recipe['estimated_cook_minutes'] = $index === 2 ? 38 : 3;
+                if ($index !== 2) {
+                    $recipe['ingredients'] = array_values(array_filter($recipe['ingredients'], fn ($row) => ! in_array($row['ingredient_id'], [$foods['Fat A']->id, $foods['Fat B']->id], true)));
+                }
+            }
+            unset($recipe);
+
+            return Http::response($this->response($recipes));
+        }]);
+        $draft = $this->draft($user);
+        (new GenerateWeeklyMealDraft($draft->id))->handle(app(WeeklyMealPlanner::class));
+        $this->assertSame('ready', $draft->fresh()->status);
+        $this->assertContains(40, array_map(fn ($row) => MealPreparationTime::total($row['snapshot']), $draft->fresh()->proposals));
+        $source = app(WeeklyMealPlanner::class)->source($user);
+        app(MealPortionBalancer::class)->assertFits($draft->fresh()->proposals, [], $source['context']['targets']);
+        Http::assertSentCount(3);
+    }
+
+    public function test_individual_ideas_rank_within_time_before_longer_and_unknown_estimates(): void
+    {
+        Http::preventStrayRequests();
+        config(['services.openai.key' => 'test-key', 'services.openai.recipe_model' => 'test-model']);
+        $user = $this->member(3, 0, 10);
+        $foods = $this->foods();
+        $recipes = $this->recipes($foods, app(MealIdeaGenerator::class)->context($user, 'lunch')['meal_targets']);
+        foreach ($recipes as $index => &$recipe) {
+            $recipe['estimated_prep_minutes'] = [5, 3, null][$index];
+            $recipe['estimated_cook_minutes'] = [15, 5, null][$index];
+        }
+        unset($recipe);
+        Http::fake(['api.openai.com/v1/responses' => Http::response($this->response($recipes))]);
+        $batch = app(MealIdeaBatchGenerator::class)->generate($user, 'lunch');
+        $this->assertSame([8, 20, null], array_map(fn ($idea) => MealPreparationTime::total($idea), $batch['ideas']));
+        Http::assertSentCount(1);
     }
 }

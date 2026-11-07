@@ -12,6 +12,9 @@ class OnboardingController extends Controller
     {
         $request->session()->keep('status');
 
-        return redirect()->route($onboarding->state($request->user())['route']);
+        $setup = $onboarding->state($request->user());
+        $route = $setup['complete'] && $onboarding->generationBlock($request->user()) !== null ? 'dashboard' : $setup['route'];
+
+        return redirect()->route($route);
     }
 }

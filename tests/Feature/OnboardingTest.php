@@ -72,7 +72,7 @@ class OnboardingTest extends TestCase
         $this->assertNotNull($user->fresh()->food_preferences_reviewed_at);
         $this->assertDatabaseCount('user_food_preferences', 0);
         $this->assertDatabaseCount('weekly_meal_drafts', 0);
-        $this->get(route('setup'))->assertRedirect(route('weekly-meals.create'));
+        $this->get(route('setup'))->assertRedirect(route('dashboard'));
         $this->get(route('dashboard'))->assertOk()->assertSee('Your setup is complete');
     }
 
@@ -94,11 +94,11 @@ class OnboardingTest extends TestCase
     public function test_review_profiles_can_finish_setup_without_changing_truthful_answers(): void
     {
         $user = User::factory()->create();
-        $this->profile($user, ['planning_context' => 'needs_review']);
+        $this->profile($user, ['planning_context' => 'needs_review', 'weight_kg' => 100]);
         $this->actingAs($user)->get(route('setup'))->assertRedirect(route('food-preferences.edit'));
         $this->get(route('food-preferences.edit'))->assertOk()->assertSee('Keep your answers accurate');
         $this->put(route('food-preferences.update'), [])->assertRedirect(route('setup'));
-        $this->get(route('weekly-meals.create'))->assertOk()->assertSee('Automatic calorie targets and meal generation');
+        $this->get(route('weekly-meals.create'))->assertOk()->assertSee('Your measurements fall outside the range supported by automatic planning');
         $this->assertTrue(app(Onboarding::class)->state($user->fresh())['complete']);
         $this->assertDatabaseHas('nutrition_profiles', ['user_id' => $user->id, 'planning_context' => 'needs_review']);
     }

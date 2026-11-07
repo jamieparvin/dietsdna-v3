@@ -389,6 +389,26 @@
             outline-offset: 3px;
         }
 
+        .pf-fields > .pf-span {
+            min-width: 0;
+        }
+
+        .pf-fields input#date_of_birth {
+            -webkit-appearance: none;
+            appearance: none;
+            display: block;
+            box-sizing: border-box;
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .pf-fields input#date_of_birth::-webkit-date-and-time-value {
+            min-width: 0;
+            margin: 0;
+            text-align: left;
+        }
+
         @media (max-width: 1050px) {
             .pf-grid {
                 grid-template-columns: 1fr;

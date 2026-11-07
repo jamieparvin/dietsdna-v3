@@ -73,8 +73,8 @@ class MealIdeaBatchGenerator
             $remaining = $checked['ideas'];
             while ($remaining) {
                 $usage = $variety->usage(array_map(fn ($idea) => ['snapshot' => $idea], $accepted), $catalog);
-                usort($remaining, fn ($a, $b) => $variety->score([['snapshot' => $a]], $catalog, $usage)
-                    <=> $variety->score([['snapshot' => $b]], $catalog, $usage));
+                usort($remaining, fn ($a, $b) => [MealPreparationTime::score($a, $context['cooking_minutes'] ?? null), $variety->score([['snapshot' => $a]], $catalog, $usage)]
+                    <=> [MealPreparationTime::score($b, $context['cooking_minutes'] ?? null), $variety->score([['snapshot' => $b]], $catalog, $usage)]);
                 $idea = array_shift($remaining);
                 $key = mb_strtolower(preg_replace('/\s+/u', ' ', trim($idea['name'])));
                 $recipe = $this->recipeKey($idea);
@@ -97,9 +97,6 @@ class MealIdeaBatchGenerator
 
         $this->assertCurrent($user, $mealType, $context);
         if (! $accepted) {
-            if (($context['cooking_minutes'] ?? null) !== null && collect($rejectionDetails)->contains(fn ($row) => str_contains($row['reason'], 'estimated preparation and cooking time'))) {
-                $this->fail('No ideas matched your '.$context['cooking_minutes'].'-minute preparation and cooking preference within the portion limits after one replacement attempt. Try different ideas, or review this preference if you have more time. Your saved meals and plan have not changed. Times are AI estimates, not verified limits.');
-            }
             $this->fail('No ideas met this meal’s calorie and macro guide within the portion limits after one replacement attempt. Your previous ideas and saved meals have not changed. Try different meal ideas or review your eligible food choices.');
         }
 

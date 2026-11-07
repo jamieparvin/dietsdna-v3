@@ -2,6 +2,7 @@
 
 namespace App\Services\Recipes;
 
+use App\Services\Meals\MealPreparationTime;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -73,7 +74,7 @@ Do not calculate or return calorie or macro figures.
 PROMPT;
 
         if ($includeTiming) {
-            $instructions .= "\nReturn estimated_prep_minutes and estimated_cook_minutes as non-negative whole minutes for each recipe. Include preparation and cooking, and choose methods whose sum fits the available time in the brief. These are AI estimates, never verified timing guarantees.";
+            $instructions .= "\nReturn estimated_prep_minutes and estimated_cook_minutes as non-negative whole minutes for each recipe. Include preparation and cooking. Prefer methods within the available time, but return suitable alternatives with honest longer estimates when necessary. Never shorten estimates to fit. Use null for unknown times. These are AI estimates, never verified timing guarantees.";
         }
 
         try {
@@ -161,6 +162,15 @@ PROMPT;
             $this->fail('The generated response could not be read. Nothing was saved.');
         }
 
+        if ($includeTiming && is_array($data['recipes'] ?? null)) {
+            foreach ($data['recipes'] as &$recipe) {
+                if (is_array($recipe) && MealPreparationTime::total($recipe) === null) {
+                    unset($recipe['estimated_prep_minutes'], $recipe['estimated_cook_minutes']);
+                }
+            }
+            unset($recipe);
+        }
+
         $validator = Validator::make(
             is_array($data) ? $data : [],
             [
@@ -170,8 +180,8 @@ PROMPT;
                     'array:name,description,instructions,servings,ingredients'.($includeTiming ? ',estimated_prep_minutes,estimated_cook_minutes' : ''),
                 ],
                 ...($includeTiming ? [
-                    'recipes.*.estimated_prep_minutes' => ['required', 'integer', 'between:0,1440'],
-                    'recipes.*.estimated_cook_minutes' => ['required', 'integer', 'between:0,1440'],
+                    'recipes.*.estimated_prep_minutes' => ['sometimes', 'nullable', 'integer', 'between:0,1440'],
+                    'recipes.*.estimated_cook_minutes' => ['sometimes', 'nullable', 'integer', 'between:0,1440'],
                 ] : []),
                 'recipes.*.name' => ['required', 'string', 'max:255'],
                 'recipes.*.description' => ['required', 'string', 'max:5000'],
@@ -196,9 +206,6 @@ PROMPT;
         );
 
         if ($validator->fails()) {
-            if ($includeTiming && collect($validator->errors()->keys())->contains(fn ($key) => str_contains($key, 'estimated_'))) {
-                $this->fail('The generated meals did not include valid preparation and cooking estimates. Try a fresh preview; no new meals have been saved.');
-            }
             $this->fail(
                 'The generated batch did not pass validation, or the catalog '
                 .'could not support the brief. Nothing was saved. '
@@ -262,7 +269,7 @@ PROMPT;
 
         if ($includeTiming) {
             foreach (['estimated_prep_minutes', 'estimated_cook_minutes'] as $field) {
-                $recipe['properties'][$field] = ['type' => 'integer'];
+                $recipe['properties'][$field] = ['type' => ['integer', 'null']];
                 $recipe['required'][] = $field;
             }
         }

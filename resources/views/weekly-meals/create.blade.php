@@ -101,7 +101,7 @@
         <section class="wm-panel">
             <h2>Build your week</h2>
             @if($source['context']['cooking_minutes'] ?? null)
-                <p class="wm-muted">Time available per meal: {{ $source['context']['cooking_minutes'] }} minutes including preparation and cooking. Suggested times are AI estimates, not verified limits.</p>
+                <p class="wm-muted">Time available per meal: {{ $source['context']['cooking_minutes'] }} minutes including preparation and cooking. We prefer meals within this time and offer the closest suitable alternatives when needed. Suggested times are AI estimates, not verified limits.</p>
             @endif
             <p class="wm-muted">
                 {{ $source['context']['meal_count'] }} full meals

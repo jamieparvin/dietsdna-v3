@@ -3,13 +3,26 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Services\Meals\MealIdeaGenerator;
 use App\Services\Meals\MealPlanSlots;
 use App\Services\Nutrition\NutritionTargetCalculator;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class Onboarding
 {
     public function __construct(private readonly NutritionTargetCalculator $calculator) {}
+
+    public function generationBlock(User $user): ?string
+    {
+        try {
+            app(MealIdeaGenerator::class)->context($user, 'lunch');
+        } catch (ValidationException $exception) {
+            return collect($exception->errors())->flatten()->first();
+        }
+
+        return null;
+    }
 
     /**
      * Review means details are recorded, even when automatic targets are unavailable.

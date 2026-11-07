@@ -16,21 +16,25 @@
         @elseif(!$setup['preferencesComplete'])
             <h2 id="setup-next">Review your food preferences</h2>
             <p>Choose foods you enjoy and those you’d prefer to avoid. We’ll use these choices when suggesting meals. You can update them at any time.</p>
-        @elseif($setup['targets']['status'] !== 'ready')
+        @elseif($generationBlocked !== null)
             <h2 id="setup-next">Your setup is complete</h2>
             <p>Your profile and food preferences are saved. Your existing meals and plans stay saved.</p>
         @else
             <h2 id="setup-next">Next: your first weekly meal preview</h2>
             <p>Your profile and preference setup is finished. Generating and confirming a plan are optional. Your existing meals and plans stay saved.</p>
         @endif
+        @if($generationBlocked !== null && ($setup['targets']['status'] !== 'review' || $generationBlocked !== $setup['targets']['message']))
+            <p role="status"><strong>Automatic meal generation unavailable.</strong> {{ $generationBlocked }}</p>
+        @endif
         @if($preview ?? null)
             <p>{{ $preview->status === 'ready' ? 'Your weekly preview is ready to review.' : 'Your weekly preview is being prepared. You can leave and return while it runs.' }}</p>
             <a class="setup-button" href="{{ route('weekly-meals.show', $preview->id) }}">{{ $preview->status === 'ready' ? 'Review weekly preview' : 'View preview progress' }}</a>
-        @elseif($setup['complete'] && $setup['targets']['status'] !== 'ready')
+        @elseif($setup['complete'] && $generationBlocked !== null)
             <a class="setup-button" href="{{ route('nutrition-profile.edit') }}">View nutrition profile</a>
         @else
             <a class="setup-button" href="{{ route($setup['route']) }}">{{ match($setup['step']) { 1 => 'Continue to nutrition profile', 2 => 'Continue to food preferences', default => 'Continue to weekly preview' } }}</a>
         @endif
+        @include('partials.food-allergy-notice')
         @include('partials.nutrition-estimate-disclaimer')
         <p>You can edit your nutrition profile and food preferences at any time using the menu.</p>
     </section>

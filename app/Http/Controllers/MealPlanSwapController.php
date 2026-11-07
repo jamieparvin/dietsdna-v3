@@ -6,6 +6,7 @@ use App\Models\MealPlanEntry;
 use App\Models\SavedMeal;
 use App\Services\Meals\MealIdeaGenerator;
 use App\Services\Meals\MealPlanSlots;
+use App\Services\Meals\MealPreparationTime;
 use App\Services\Meals\PlannedMealSnapshot;
 use App\Services\Meals\WeeklyMealSchedule;
 use Illuminate\Http\Request;
@@ -28,7 +29,8 @@ class MealPlanSwapController extends Controller
             $eligibleMeals = SavedMeal::query()->where('user_id', $request->user()->id)
                 ->when($type !== 'all', fn ($query) => $query->where('meal_type', $type))
                 ->where('id', '!=', $entry->saved_meal_id)->latest('id')->get()
-                ->filter(fn ($meal) => $snapshots->eligible($meal->snapshot, $context['ingredients']))->values();
+                ->filter(fn ($meal) => $snapshots->eligible($meal->snapshot, $context['ingredients']))
+                ->sort(fn ($a, $b) => MealPreparationTime::score($a->snapshot, $context['cooking_minutes'] ?? null) <=> MealPreparationTime::score($b->snapshot, $context['cooking_minutes'] ?? null))->values();
         } catch (ValidationException $exception) {
             $blocked = collect($exception->errors())->flatten()->first();
         }

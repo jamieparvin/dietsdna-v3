@@ -142,12 +142,12 @@
         </div>
     </section>
     
-@if(!$ready)
+@if($generationBlocked !== null)
 
         <section class="dn-notice" aria-labelledby="dn-setup-title">
             <div>
-<h2 id="dn-setup-title">{{ ($targets['status'] ?? '') === 'review' ? 'Automatic planning unavailable' : 'Set your daily nutrition guide' }}</h2>
-<p>{{ $targets['message'] }}</p>
+<h2 id="dn-setup-title">{{ 'Automatic planning unavailable' }}</h2>
+<p>{{ $generationBlocked }}</p>
 </div>
             <a class="dn-button dn-button-outline" href="{{ route('nutrition-profile.edit') }}">{{ $profile ? 'Review profile' : 'Set up profile' }}</a>
         </section>
@@ -224,7 +224,7 @@
 <h3>Your next meal starts here</h3>
 <p class="dn-muted">Choose a saved favourite or generate a week using your food preferences.</p>
 <div class="dn-actions">
-<a class="dn-button" href="{{ route('weekly-meals.create', ['date' => $date]) }}">Generate my week</a>
+@if($generationBlocked === null)<a class="dn-button" href="{{ route('weekly-meals.create', ['date' => $date]) }}">Generate my week</a>@else<a class="dn-button" href="{{ route('nutrition-profile.edit') }}">View nutrition profile</a>@endif
 <a class="dn-button dn-button-outline" href="{{ route('saved-meals.index', ['date' => $date]) }}">Choose saved meals</a>
 </div>
 </div>
@@ -327,7 +327,7 @@ aria-current="date"
                 </nav>
                 <div class="dn-week-footer">
 <p>{{ $displayWeekPlannedDays }} of 7 days have planned meals</p>
-<a href="{{ route('weekly-meals.create', ['date' => $displayWeekStart->toDateString()]) }}">Plan my week →</a>
+@if($generationBlocked === null)<a href="{{ route('weekly-meals.create', ['date' => $displayWeekStart->toDateString()]) }}">Plan my week →</a>@endif
 </div>
             </section>
             <section class="dn-panel" aria-labelledby="dn-profile-title">

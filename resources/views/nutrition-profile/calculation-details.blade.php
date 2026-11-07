@@ -31,27 +31,15 @@
             </dd>
         </div>
 
-        <div class="pf-span">
-            <dt>Do you need specialist nutrition support?</dt>
-            <dd>
-                {{ \App\Services\Nutrition\PlanningSuitability::label($profile?->planning_context, $profile?->planning_circumstances) }}
-            </dd>
-        </div>
     </dl>
 
     <details
         class="pf-edit"
         @if (
             ! $profile?->calculation_sex
-            || ! $profile?->planning_context
-            || \App\Services\Nutrition\PlanningSuitability::needsClarification($profile)
             || $profile?->resistance_training === null
             || $errors->hasAny([
                 'calculation_sex',
-                'planning_context',
-                'planning_circumstances',
-                'planning_circumstances.*',
-                'planning_circumstances_present',
                 'resistance_training',
             ])
         ) open @endif

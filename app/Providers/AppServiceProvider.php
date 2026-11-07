@@ -27,6 +27,10 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        View::composer(['meal-ideas.index', 'weekly-meals.show', 'meal-plan.swap', 'saved-meals.index', 'meal-plan.index'], function ($view): void {
+            $view->with('preferredMealMinutes', auth()->user()?->nutritionProfile?->cooking_minutes);
+        });
+
         ResetPassword::toMailUsing(function ($notifiable, string $token) {
             $broker = config('auth.defaults.passwords');
             $minutes = (int) config("auth.passwords.{$broker}.expire", 60);

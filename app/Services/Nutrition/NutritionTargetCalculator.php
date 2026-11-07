@@ -30,7 +30,7 @@ class NutritionTargetCalculator
         $required = [
             'date_of_birth' => 'date of birth', 'height_cm' => 'height', 'weight_kg' => 'weight',
             'calculation_sex' => 'sex used for calculation', 'activity_level' => 'activity level',
-            'goal' => 'goal', 'planning_context' => 'planning suitability answer',
+            'goal' => 'goal',
             'resistance_training' => 'resistance training preference',
         ];
         $missing = [];
@@ -41,13 +41,6 @@ class NutritionTargetCalculator
         }
         if ($missing) {
             return $this->unavailable('incomplete', 'Complete: '.implode(', ', $missing).'.');
-        }
-        if ($profile->planning_circumstances === []) {
-            return $this->unavailable('incomplete', 'Answer the specialist nutrition support question to complete your profile.');
-        }
-        if ($profile->planning_context !== 'general_adult'
-            || ($profile->planning_circumstances !== null && $profile->planning_circumstances !== ['none'])) {
-            return $this->unavailable('review', PlanningSuitability::RESTRICTED_MESSAGE);
         }
         $today = CarbonImmutable::now('Europe/London')->startOfDay();
         $birthDate = CarbonImmutable::parse($profile->date_of_birth->format('Y-m-d'), 'Europe/London');

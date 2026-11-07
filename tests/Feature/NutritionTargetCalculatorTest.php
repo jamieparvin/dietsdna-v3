@@ -141,9 +141,9 @@ class NutritionTargetCalculatorTest extends TestCase
         $this->assertSame('incomplete', $this->calculator()->calculate($this->profile(['weight_kg' => null]))['status']);
     }
 
-    public function test_individual_review_remains_in_force(): void
+    public function test_historical_review_answer_no_longer_blocks_standard_targets(): void
     {
-        $this->assertSame('review', $this->calculator()->calculate($this->profile(['planning_context' => 'needs_review']))['status']);
+        $this->assertSame('ready', $this->calculator()->calculate($this->profile(['planning_context' => 'needs_review']))['status']);
     }
 
     public function test_weight_loss_rejects_a_higher_target_weight(): void

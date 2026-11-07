@@ -362,7 +362,7 @@
 
     @if(in_array($draft->status, ['queued', 'generating'], true))
         <section class="wm-panel">
-            <h2>
+            <h2 id="weekly-generation-status" aria-live="polite">
                 {{ $draft->status === 'queued'
                     ? 'Waiting to start'
                     : 'Creating meal options' }}
@@ -660,6 +660,7 @@
         (() => {
             const url = @json(route('weekly-meals.status', $draft->id));
             const progress = document.getElementById('weekly-progress');
+            const heading = document.getElementById('weekly-generation-status');
 
             async function poll() {
                 try {
@@ -679,6 +680,7 @@
                         return;
                     }
 
+                    heading.textContent = data.status === 'queued' ? 'Waiting to start' : 'Creating meal options';
                     progress.textContent =
                         `${data.completed_types} of {{ $typeCount }} meal types completed.`;
 

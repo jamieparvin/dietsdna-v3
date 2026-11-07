@@ -361,7 +361,7 @@ dairy or plant foods where available. Excluded meat is never a fallback.
 Alternatives must differ in composition or preparation, not just their titles.
 Keep preparation methods consistent with the chosen raw/cooked entries.
 
-Use time_available_per_meal_minutes for the combined preparation AND cooking estimate, not cooking alone. Never claim this time is verified.
+Time available is a soft preference for combined preparation AND cooking, not a limit. Prefer suitable meals within time_available_per_meal_minutes. When none fit, return the closest suitable alternatives with honest longer estimates. Never shorten estimates or return no recipes solely because of time. Missing time may be null. Never claim timing is verified.
 
 Do not make medical, allergy-safe or health-outcome claims.
 

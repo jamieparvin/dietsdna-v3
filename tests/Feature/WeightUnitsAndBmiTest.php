@@ -70,7 +70,7 @@ class WeightUnitsAndBmiTest extends TestCase
     public function test_lbs_validation_round_trip_preserves_original_input_without_double_conversion(): void
     {
         $user = $this->member();
-        $this->actingAs($user)->from(route('nutrition-profile.edit'))->put(route('nutrition-profile.update'), ['weight_lbs' => '185.3', 'target_weight_lbs' => '170.2', 'planning_context' => 'invalid'])->assertSessionHasErrors('planning_context');
+        $this->actingAs($user)->from(route('nutrition-profile.edit'))->put(route('nutrition-profile.update'), ['weight_lbs' => '185.3', 'target_weight_lbs' => '170.2', 'calculation_sex' => 'invalid'])->assertSessionHasErrors('calculation_sex');
         $response = $this->withCookie(config('session.cookie'), session()->getId())->get(route('nutrition-profile.edit'))->assertOk();
         $this->assertSame('185.3', $this->input($response, 'weight_lbs'));
         $this->assertSame('170.2', $this->input($response, 'target_weight_lbs'));

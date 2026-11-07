@@ -2,8 +2,6 @@
 
 namespace App\Services\Meals;
 
-use Illuminate\Validation\ValidationException;
-
 class MealPreparationTime
 {
     public const VERSION = 'prep-and-cook-estimate-v1';
@@ -32,13 +30,26 @@ class MealPreparationTime
         return $available === null || (self::total($meal) !== null && self::total($meal) <= $available);
     }
 
-    public static function assertFits(array $meal, ?int $available): void
+    /** Lower scores prefer known times within the preference, then the closest estimates. */
+    public static function score(array $meal, ?int $available): array
     {
         if ($available === null) {
-            return;
+            return [0, 0, 0];
         }
-        if (! self::fits($meal, $available)) {
-            throw ValidationException::withMessages(['generation' => 'This option does not have an estimated preparation and cooking time within your '.$available.' minutes available. Try different meal ideas, or review this preference if you have more time. Times are AI estimates, not verified limits.']);
+        $minutes = self::total($meal);
+
+        return [$minutes === null || $minutes > $available ? 1 : 0, $minutes === null ? 1 : 0, $minutes === null ? 0 : max(0, $minutes - $available)];
+    }
+
+    public static function scoreRows(array $rows, ?int $available): array
+    {
+        $score = [0, 0, 0];
+        foreach ($rows as $row) {
+            foreach (self::score($row['snapshot'], $available) as $index => $value) {
+                $score[$index] += $value;
+            }
         }
+
+        return $score;
     }
 }

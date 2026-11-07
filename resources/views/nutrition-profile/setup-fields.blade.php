@@ -4,8 +4,8 @@
 @foreach([
     ['id' => 'personal', 'title' => 'Personal details', 'description' => 'Your date of birth and measurements', 'view' => 'personal-fields'],
     ['id' => 'goals', 'title' => 'Goals and activity', 'description' => 'Your direction and daily routine', 'view' => 'goal-fields'],
-    ['id' => 'pattern', 'title' => 'Meal pattern', 'description' => 'Full meals, optional snacks and time available', 'view' => 'meal-pattern-fields'],
-    ['id' => 'calculation', 'title' => 'Calculation details', 'description' => 'Information used for your calorie and macro estimates', 'view' => 'calculation-fields'],
+    ['id' => 'pattern', 'title' => 'Meal options', 'description' => 'Number of meals, snacks and available time', 'view' => 'meal-pattern-fields'],
+    ['id' => 'calculation', 'title' => 'Calculation details', 'description' => 'Used for your calorie and macro estimates', 'view' => 'calculation-fields'],
 ] as $section)
     <section class="pf-card" aria-labelledby="{{ $section['id'] }}-heading" aria-describedby="profile-setup-help">
         <div class="pf-card-head">

@@ -47,19 +47,23 @@ class WeeklyMealPlanner
             'profile' => array_diff_key($profileAttributes, array_flip(['dietary_preference', 'updated_at'])),
             'slots' => $slots,
         ];
+        $previousSignature = hash('sha256', json_encode($signatureInput, JSON_THROW_ON_ERROR));
+        $previousProfile = $signatureInput['profile'];
+        $signatureInput['profile'] = array_diff_key($previousProfile, array_flip(['planning_context', 'planning_circumstances']));
         $signature = hash('sha256', json_encode($signatureInput, JSON_THROW_ON_ERROR));
-        // Recovery can migrate v1 previews only if ALL source inputs still match.
         $signatureInput['portion_balance'] = 'portion-balance-v1';
+        $canonicalLegacySignature = hash('sha256', json_encode($signatureInput, JSON_THROW_ON_ERROR));
+        $signatureInput['profile'] = $previousProfile;
         $legacySignature = hash('sha256', json_encode($signatureInput, JSON_THROW_ON_ERROR));
 
-        return compact('context', 'slots', 'signature', 'legacySignature');
+        return compact('context', 'slots', 'signature', 'previousSignature', 'legacySignature', 'canonicalLegacySignature');
     }
 
     public function assertCurrent(WeeklyMealDraft $draft, User $user): array
     {
         $source = $this->source($user);
 
-        if (! hash_equals($draft->source_signature, $source['signature'])) {
+        if (! in_array($draft->source_signature, [$source['signature'], $source['previousSignature']], true)) {
             $this->fail('Your profile, preferences or eligible ingredients changed. Generate a new weekly preview.');
         }
 
@@ -74,7 +78,7 @@ class WeeklyMealPlanner
             ->all();
     }
 
-    /** Two-meal patterns permit at most one replacement batch per main type, shared by time and portion repairs. */
+    /** Two-meal patterns permit at most one replacement batch per main type, for portion repairs. */
     public function generate(WeeklyMealDraft $draft): void
     {
         $user = User::query()->findOrFail($draft->user_id);
@@ -99,30 +103,6 @@ class WeeklyMealPlanner
             $this->assertReplacementBaseline($draft, $this->planState($draft));
             $batch = $this->generator->generate($user, $type, 3, [], [], $usage);
             $source = $this->assertCurrent($draft, $user);
-            $context = $this->generator->context($user, $type);
-            if ($draft->meal_count === 2 && in_array($type, ['lunch', 'dinner'], true)
-                && ! array_filter($batch['ideas'], fn ($idea) => MealPreparationTime::fits($idea, $context['cooking_minutes'] ?? null))) {
-                $checked = app(MealIdeaPortionBalancer::class)->balanceBatch($batch, $context, true);
-                if (! $checked['ideas']) {
-                    $batch = $this->generator->generate($user, $type, 3, array_column($batch['ideas'], 'name'), $checked['portion_rejections'], $usage);
-                    $this->assertCurrent($draft, $user);
-                    $repairedTypes[$type] = true;
-                }
-            }
-            $timedIdeas = [];
-            $timeFailure = null;
-            foreach ($batch['ideas'] as $idea) {
-                try {
-                    MealPreparationTime::assertFits($idea, $context['cooking_minutes'] ?? null);
-                    $timedIdeas[] = $idea;
-                } catch (ValidationException $exception) {
-                    $timeFailure = $exception;
-                }
-            }
-            if (! $timedIdeas) {
-                throw $timeFailure ?? ValidationException::withMessages(['week' => 'No meal options were available. Try a fresh preview; your existing plan has not changed.']);
-            }
-            $batch['ideas'] = $timedIdeas;
 
             $pools[$type] = array_map(
                 fn ($idea) => $this->snapshots->fromIdea($idea, $source['context']['ingredients']),
@@ -162,11 +142,7 @@ class WeeklyMealPlanner
                 }
                 $batch = $this->generator->generate($user, $type, 3, array_column($pools[$type], 'name'), $checked['portion_rejections'], $usage);
                 $this->assertCurrent($draft, $user);
-                $ideas = array_values(array_filter($batch['ideas'], fn ($idea) => MealPreparationTime::fits($idea, $context['cooking_minutes'] ?? null)));
-                if (! $ideas) {
-                    MealPreparationTime::assertFits($batch['ideas'][0] ?? [], $context['cooking_minutes'] ?? null);
-                    throw $failure;
-                }
+                $ideas = $batch['ideas'];
                 $pools[$type] = array_map(fn ($idea) => $this->snapshots->fromIdea($idea, $context['ingredients']), $ideas);
                 $repairedTypes[$type] = true;
                 $repaired = true;
@@ -194,8 +170,7 @@ class WeeklyMealPlanner
             }
             $user = User::query()->findOrFail($draft->user_id);
             $source = $this->source($user);
-            if (! hash_equals($source['signature'], $draft->source_signature)
-                && ! hash_equals($source['legacySignature'], $draft->source_signature)) {
+            if (! in_array($draft->source_signature, [$source['signature'], $source['previousSignature'], $source['legacySignature'], $source['canonicalLegacySignature']], true)) {
                 $this->fail('Your profile, preferences or eligible ingredients changed. Generate a new weekly preview.');
             }
             $pools = $draft->generated ?? [];
@@ -208,7 +183,6 @@ class WeeklyMealPlanner
                     $this->fail('This draft does not contain a complete set of stored options. No AI request was made.');
                 }
                 foreach ($pools[$type] as $snapshot) {
-                    MealPreparationTime::assertFits($snapshot, $source['context']['cooking_minutes'] ?? null);
                     if (! $this->snapshots->eligible($snapshot, $source['context']['ingredients'])) {
                         $this->fail('A stored meal is no longer eligible. No AI request was made.');
                     }
@@ -259,7 +233,7 @@ class WeeklyMealPlanner
         try {
             $proposals = $this->schedule->buildBalanced(
                 $draft->start_date->toDateString(), $draft->slots, $pools,
-                $fixed, $catalog, $targets, $this->balancer, $this->proteinUsage($fixed)
+                $fixed, $catalog, $targets, $this->balancer, $this->proteinUsage($fixed), $source['context']['cooking_minutes'] ?? null
             );
         } catch (ValidationException $exception) {
             throw ValidationException::withMessages(['week' => 'No suitable preview was found for your '.$draft->meal_count.' full meals per day within the portion limits. Try a fresh preview to request different combinations. The available ingredient library may need review if this continues. Your daily targets, saved meals and existing plan have not changed. '.collect($exception->errors())->flatten()->first()]);

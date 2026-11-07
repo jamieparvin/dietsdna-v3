@@ -83,14 +83,14 @@ class OnboardingGuidanceTest extends TestCase
 
     public function test_review_reasons_are_distinct_from_missing_details_and_are_not_duplicated_on_weekly_generation(): void
     {
-        $user = $this->member(['planning_context' => 'needs_review']);
+        $user = $this->member(['planning_context' => 'needs_review', 'weight_kg' => 100]);
         $this->actingAs($user)->get(route('weekly-meals.create'))->assertOk()
             ->assertSee('Your setup is complete. Automatic meal generation is currently unavailable.')
             ->assertSee('Keep your answers and food choices accurate; finishing setup does not mean meals can always be generated.');
         $response = $this->get(route('nutrition-profile.edit'))->assertOk()->assertDontSee('Tell us about yourself, your goals and how many meals');
-        $this->assertSame(1, substr_count($response->getContent(), 'Automatic calorie targets and meal generation'));
+        $this->assertSame(1, substr_count($response->getContent(), 'Your measurements fall outside the range supported by automatic planning'));
         $response = $this->get(route('weekly-meals.create'))->assertOk();
-        $this->assertSame(1, substr_count($response->getContent(), 'Automatic calorie targets and meal generation'));
+        $this->assertSame(1, substr_count($response->getContent(), 'Your measurements fall outside the range supported by automatic planning'));
         $this->assertStringNotContainsString('id="weekly-start-form"', $response->getContent());
     }
 
