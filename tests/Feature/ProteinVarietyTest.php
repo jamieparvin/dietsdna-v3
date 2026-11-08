@@ -2,13 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\GenerateWeeklyMealDraft;
 use App\Models\Ingredient;
 use App\Models\User;
+use App\Models\WeeklyMealDraft;
 use App\Services\Meals\MealIdeaGenerator;
 use App\Services\Meals\MealIdeaPortionBalancer;
 use App\Services\Meals\MealPortionBalancer;
 use App\Services\Meals\PlannedMealSnapshot;
 use App\Services\Meals\ProteinVariety;
+use App\Services\Meals\WeeklyMealPlanner;
 use App\Services\Meals\WeeklyMealSchedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -191,5 +194,122 @@ class ProteinVarietyTest extends TestCase
         // A single option can fill multiple slots when variety is impossible.
         $rows = app(WeeklyMealSchedule::class)->build('2026-11-02', ['lunch' => 'Lunch', 'meal_2' => 'Lunch'], ['lunch' => [$pool[0]]], []);
         $this->assertCount(14, $rows);
+    }
+
+    private function weeklyProteins(bool $limited = false): array
+    {
+        foreach ([
+            ['CHICKEN-BREAST-RAW-001', 'Meat & poultry'],
+            ['BEEF-LEAN-RAW-001', 'Meat & poultry'],
+            ['PRAWNS-RAW-001', 'Fish & seafood'],
+            ['TURKEY-MINCE-RAW-001', 'Meat & poultry'],
+            ['GREEK-YOGURT-NONFAT-001', 'Protein & dairy'],
+            ['EGGS-WHOLE-RAW-001', 'Protein & dairy'],
+        ] as [$code, $category]) {
+            $food = $this->foods[0]->replicate();
+            $food->fill(['food_code' => $code, 'name' => $code, 'category' => $category]);
+            $food->save();
+            $this->foods->push($food);
+        }
+        foreach ($this->foods as $food) {
+            if ($limited && ! in_array($food->food_code, ['GREEK-YOGURT-NONFAT-001', 'RICE', 'OIL'], true)) {
+                $food->update(['is_active' => false]);
+            }
+        }
+        $this->put(route('food-preferences.update'), ['preferences' => $this->foods->filter(fn ($food) => $food->is_active)
+            ->mapWithKeys(fn ($food) => [$food->preferenceFoodKey() => 'preferred'])->all()])->assertSessionHasNoErrors();
+        $this->owner->nutritionProfile()->update(['cooking_minutes' => 10]);
+        $assignments = [];
+        Http::fake(['api.openai.com/*' => function ($request) use (&$assignments) {
+            $input = json_decode($request['input'], true);
+            $brief = json_decode(substr($input['brief'], strpos($input['brief'], "\n{")), true);
+            $assignments[$brief['meal_type']] = $brief['preferred_protein_sources'];
+            $groups = collect($brief['protein_variety_groups'])->keyBy('source');
+            $targets = $brief['meal_targets'];
+            $recipes = [];
+            foreach ($brief['preferred_protein_sources'] as $index => $source) {
+                $recipes[] = [
+                    'name' => $brief['meal_type'].' '.$source.' '.$index, 'description' => 'Test meal', 'servings' => 1,
+                    'instructions' => 'Prepare '.$source.' using method '.$index.'.',
+                    'estimated_prep_minutes' => 5, 'estimated_cook_minutes' => $source === 'reviewed:greek-yogurt' ? 0 : 15,
+                    'ingredients' => [
+                        ['ingredient_id' => $groups[$source]['ingredient_ids'][0], 'quantity_g' => round($targets['protein_g'] * 2, 2)],
+                        ['ingredient_id' => $this->foods[4]->id, 'quantity_g' => round($targets['carbohydrate_g'], 2)],
+                        ['ingredient_id' => $this->foods[5]->id, 'quantity_g' => round(max(0, $targets['fat_g'] - $targets['protein_g'] * 0.2), 2)],
+                    ],
+                ];
+            }
+
+            return Http::response($this->response($recipes));
+        }]);
+        $planner = app(WeeklyMealPlanner::class);
+        $source = $planner->source($this->owner);
+        $draft = WeeklyMealDraft::create([
+            'user_id' => $this->owner->id, 'start_date' => '2026-11-09', 'status' => 'queued',
+            'source_signature' => $source['signature'], 'meal_count' => (int) $this->owner->nutritionProfile()->first()->meals_per_day, 'slots' => $source['slots'],
+        ]);
+        (new GenerateWeeklyMealDraft($draft->id))->handle($planner);
+        $draft->refresh();
+        $this->assertSame('ready', $draft->status, $draft->error ?? '');
+        $catalog = $this->foods->keyBy('id')->map->getAttributes()->all();
+        app(MealPortionBalancer::class)->assertFits($draft->proposals, [], array_intersect_key($source['context']['targets'], array_flip(['calories_kcal', 'protein_g', 'carbohydrate_g', 'fat_g'])));
+        $this->assertDatabaseCount('meal_plan_entries', 0);
+        $this->assertDatabaseCount('saved_meals', 0);
+        Http::assertSentCount(4);
+
+        return [$draft, $catalog, $assignments];
+    }
+
+    public function test_weekly_generation_spreads_liked_meat_and_fish_and_does_not_default_to_yoghurt_across_meal_types(): void
+    {
+        $this->owner->nutritionProfile()->update(['meals_per_day' => 5]);
+        [$draft, $catalog, $assignments] = $this->weeklyProteins();
+        $this->assertCount(42, $draft->proposals);
+        $mainAssignments = array_merge($assignments['lunch'], $assignments['dinner']);
+        $this->assertCount(6, array_unique($mainAssignments));
+        $this->assertContains('reviewed:salmon', $mainAssignments);
+        $this->assertContains('reviewed:chicken', $mainAssignments);
+        $this->assertNotContains('reviewed:greek-yogurt', $mainAssignments);
+        $variety = app(ProteinVariety::class);
+        $used = $variety->usage($draft->proposals, $catalog);
+        $this->assertGreaterThanOrEqual(2, count(array_intersect(array_keys($used), ['reviewed:salmon', 'reviewed:cod', 'reviewed:tuna', 'reviewed:prawns'])));
+        $this->assertGreaterThanOrEqual(2, count(array_intersect(array_keys($used), ['reviewed:chicken', 'reviewed:beef', 'reviewed:turkey'])));
+        $this->assertLessThanOrEqual(7, $used['reviewed:greek-yogurt'] ?? 0);
+        foreach (collect($draft->proposals)->groupBy('date') as $rows) {
+            $sources = $rows->map(fn ($row) => $variety->main($row['snapshot'], $catalog))->all();
+            $this->assertCount(6, array_unique($sources), 'Use different main proteins on the same day when all six are feasible.');
+        }
+    }
+
+    public function test_limited_liked_proteins_can_repeat_without_extra_paid_variety_requests(): void
+    {
+        [$draft, $catalog] = $this->weeklyProteins(true);
+        $this->assertCount(28, $draft->proposals);
+        foreach ($draft->proposals as $row) {
+            $this->assertSame('reviewed:greek-yogurt', app(ProteinVariety::class)->main($row['snapshot'], $catalog));
+        }
+    }
+
+    public function test_yoghurt_base_and_substantial_secondary_protein_count_more_than_a_small_dressing(): void
+    {
+        $catalog = [
+            1 => ['id' => 1, 'category' => 'Meat & poultry', 'food_code' => 'CHICKEN-BREAST-RAW-001', 'protein_g' => 25],
+            2 => ['id' => 2, 'category' => 'Protein & dairy', 'food_code' => 'GREEK-YOGURT-NONFAT-001', 'protein_g' => 10],
+        ];
+        $snapshot = fn ($chicken, $yoghurt) => ['ingredients' => [
+            ['ingredient_id' => 1, 'quantity_g' => $chicken], ['ingredient_id' => 2, 'quantity_g' => $yoghurt],
+        ]];
+        $variety = app(ProteinVariety::class);
+        $base = $variety->weights($snapshot(0, 200), $catalog);
+        $substantial = $variety->weights($snapshot(150, 150), $catalog);
+        $dressing = $variety->weights($snapshot(150, 20), $catalog);
+        $smallOnly = $variety->weights($snapshot(0, 20), $catalog);
+        $this->assertSame(1.0, $base['reviewed:greek-yogurt']);
+        $this->assertSame(1.0, $substantial['reviewed:greek-yogurt']);
+        $this->assertGreaterThan(0, $dressing['reviewed:greek-yogurt']);
+        $this->assertLessThan(0.2, $dressing['reviewed:greek-yogurt']);
+        $this->assertLessThan(0.2, $smallOnly['reviewed:greek-yogurt']);
+        $usage = $variety->usage([['snapshot' => $snapshot(150, 150)]], $catalog);
+        $this->assertSame(['reviewed:chicken' => 1.0, 'reviewed:greek-yogurt' => 1.0], $usage);
     }
 }

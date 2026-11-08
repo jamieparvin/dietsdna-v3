@@ -62,9 +62,17 @@ class WeeklyMealSchedule
             $attempts = 0;
             $last = null;
             $balanced = null;
-            // Keep the original 24 numeric fallbacks and up to 24 time-preferred combinations.
-            $candidates = $this->candidates($day, $pools, $preferredMinutes);
-            usort($candidates, fn ($a, $b) => [$this->breakfastScore($a, $breakfastUsage), MealPreparationTime::scoreRows($a, $preferredMinutes), $variety->score($a, $catalog, $usage)] <=> [$this->breakfastScore($b, $breakfastUsage), MealPreparationTime::scoreRows($b, $preferredMinutes), $variety->score($b, $catalog, $usage)]);
+            $dayUsage = $variety->usage($dayFixed, $catalog);
+            $rank = fn ($rows) => [
+                $variety->score($rows, $catalog, $dayUsage),
+                $variety->score($rows, $catalog, $usage),
+                $this->breakfastScore($rows, $breakfastUsage),
+                MealPreparationTime::scoreRows($rows, $preferredMinutes),
+            ];
+            // Keep 24 original numeric fallbacks plus 24 variety/time choices.
+            // Rank before trimming so suitable less-used sources can reach balancing.
+            $candidates = $this->candidates($day, $pools, $rank);
+            usort($candidates, fn ($a, $b) => $rank($a) <=> $rank($b));
             foreach ($candidates as $candidate) {
                 if (++$attempts > 48) {
                     break;
@@ -135,7 +143,7 @@ class WeeklyMealSchedule
         return $score;
     }
 
-    private function candidates(array $day, array $pools, ?int $preferredMinutes): array
+    private function candidates(array $day, array $pools, callable $rank): array
     {
         $initial = [];
         $options = [];
@@ -146,18 +154,18 @@ class WeeklyMealSchedule
         }
         $combinations = [];
         $required = array_count_values(array_column($day, 'meal_type'));
-        $visit = function (int $i, array $choices, array $used) use (&$visit, &$combinations, $day, $options, $initial, $required, $preferredMinutes): void {
+        $visit = function (int $i, array $choices, array $used) use (&$visit, &$combinations, $day, $options, $initial, $required, $rank): void {
             if ($i === count($day)) {
                 $changes = $distance = 0;
                 foreach ($choices as $index => $choice) {
                     $changes += $choice !== $initial[$index] ? 1 : 0;
                     $distance += ($choice - $initial[$index] + count($options[$index])) % count($options[$index]);
                 }
-                $timingRows = [];
+                $rankingRows = [];
                 foreach ($choices as $index => $choice) {
-                    $timingRows[] = ['snapshot' => $options[$index][$choice]];
+                    $rankingRows[] = array_replace($day[$index], ['snapshot' => $options[$index][$choice]]);
                 }
-                $combinations[] = ['choices' => $choices, 'changes' => $changes, 'distance' => $distance, 'time_score' => MealPreparationTime::scoreRows($timingRows, $preferredMinutes)];
+                $combinations[] = ['choices' => $choices, 'changes' => $changes, 'distance' => $distance, 'rank' => $rank($rankingRows)];
 
                 return;
             }
@@ -180,11 +188,9 @@ class WeeklyMealSchedule
         foreach (array_slice($combinations, 0, 24) as $combination) {
             $selected[implode(',', $combination['choices'])] = $combination;
         }
-        if ($preferredMinutes !== null) {
-            usort($combinations, fn ($a, $b) => [$a['time_score'], $a['changes'], $a['distance'], $a['choices']] <=> [$b['time_score'], $b['changes'], $b['distance'], $b['choices']]);
-            foreach (array_slice($combinations, 0, 24) as $combination) {
-                $selected[implode(',', $combination['choices'])] = $combination;
-            }
+        usort($combinations, fn ($a, $b) => [$a['rank'], $a['changes'], $a['distance'], $a['choices']] <=> [$b['rank'], $b['changes'], $b['distance'], $b['choices']]);
+        foreach (array_slice($combinations, 0, 24) as $combination) {
+            $selected[implode(',', $combination['choices'])] = $combination;
         }
         $candidates = [];
         foreach ($selected as $combination) {

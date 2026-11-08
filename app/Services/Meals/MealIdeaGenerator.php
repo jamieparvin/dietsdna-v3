@@ -294,6 +294,11 @@ Try preferred_protein_sources in order, one per alternative, using an eligible
 ingredient from that source. These are soft assignments: if one cannot support
 a practical meal meeting the macro guide, use another suitable catalog source.
 The groups list is meal-type guidance, not a compulsory ingredient list.
+Build the alternatives around the assigned sources, including eligible liked fish
+and seafood for main meals. Avoid falling back to yoghurt-based mains when a
+suitable assigned meat or fish can meet the same nutrition and portion guides.
+Substantial yoghurt counts as a protein source across meal types; a small sauce
+or dressing contributes less. Do not use yoghurt as the base of every alternative.
 Do not force fish or meat into breakfast or snacks. Repetition is allowed when
 few suitable sources can meet the targets; never invent foods or relax limits.
 

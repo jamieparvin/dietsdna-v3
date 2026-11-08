@@ -22,6 +22,11 @@ class ProteinVariety
         return [
             'source' => $source ?? 'group:'.($food['preference_group_key'] ?? $food['preference_key'] ?? $food['id']),
             'reviewed' => $source !== null,
+            'family' => match ($category) {
+                'fish & seafood' => 'fish',
+                'meat & poultry' => 'meat',
+                default => 'other',
+            },
             'meal_types' => in_array($category, ['fish & seafood', 'meat & poultry'], true)
                 ? ['lunch', 'dinner'] : ['breakfast', 'lunch', 'dinner', 'snack'],
         ];
@@ -43,27 +48,58 @@ class ProteinVariety
         return $protein && reset($protein) > 0 ? array_key_first($protein) : null;
     }
 
+    /**
+     * Substantial main sources count fully; secondary protein contributes in proportion to its size.
+     * A yoghurt base still counts fully even when it supplies few protein grams.
+     */
+    public function weights(array $snapshot, array $catalog): array
+    {
+        $protein = [];
+        $total = 0.0;
+        $quantities = [];
+        foreach ($snapshot['ingredients'] ?? [] as $row) {
+            $food = $catalog[$row['ingredient_id'] ?? 0] ?? null;
+            if (! $food || ! is_numeric($row['quantity_g'] ?? null) || ! is_numeric($food['protein_g'] ?? null)) {
+                continue;
+            }
+            $grams = max(0, $row['quantity_g'] * $food['protein_g'] / 100);
+            $total += $grams;
+            $group = $this->food($food);
+            if ($group && $grams > 0) {
+                $protein[$group['source']] = ($protein[$group['source']] ?? 0) + $grams;
+                $quantities[$group['source']] = ($quantities[$group['source']] ?? 0) + max(0, $row['quantity_g']);
+            }
+        }
+        $main = $this->main($snapshot, $catalog);
+        foreach ($protein as $source => $grams) {
+            // Soft variety weights, not nutrition requirements or portion limits.
+            $protein[$source] = $source === $main
+                ? min(1.0, max($grams / 15, $quantities[$source] / 150))
+                : min(1.0, $grams / 15, $grams / max(0.01, $total) / 0.25);
+        }
+
+        return $protein;
+    }
+
     public function usage(array $rows, array $catalog): array
     {
         $usage = [];
         foreach ($rows as $row) {
-            $source = $this->main($row['snapshot'], $catalog);
-            if ($source !== null) {
-                $usage[$source] = ($usage[$source] ?? 0) + 1;
+            foreach ($this->weights($row['snapshot'], $catalog) as $source => $weight) {
+                $usage[$source] = ($usage[$source] ?? 0) + $weight;
             }
         }
 
         return $usage;
     }
 
-    public function score(array $rows, array $catalog, array $usage): int
+    public function score(array $rows, array $catalog, array $usage): float
     {
-        $score = 0;
+        $score = 0.0;
         foreach ($rows as $row) {
-            $source = $this->main($row['snapshot'], $catalog);
-            if ($source !== null) {
-                $score += $usage[$source] ?? 0;
-                $usage[$source] = ($usage[$source] ?? 0) + 1;
+            foreach ($this->weights($row['snapshot'], $catalog) as $source => $weight) {
+                $score += $weight * ($usage[$source] ?? 0);
+                $usage[$source] = ($usage[$source] ?? 0) + $weight;
             }
         }
 
@@ -79,12 +115,36 @@ class ProteinVariety
                 continue;
             }
             $key = $group['source'];
-            $groups[$key] ??= ['source' => $key, 'ingredient_ids' => [], 'liked' => false, 'uses' => $usage[$key] ?? 0];
+            $groups[$key] ??= ['source' => $key, 'ingredient_ids' => [], 'liked' => false, 'uses' => $usage[$key] ?? 0, 'family' => $group['family']];
             $groups[$key]['ingredient_ids'][] = (int) $food['id'];
             $groups[$key]['liked'] = $groups[$key]['liked'] || ($food['liked'] ?? false);
         }
-        usort($groups, fn ($a, $b) => [! $a['liked'], $a['uses'], $a['source']] <=> [! $b['liked'], $b['uses'], $b['source']]);
+        $families = [];
+        foreach ($groups as $group) {
+            $families[$group['family']] = ($families[$group['family']] ?? 0) + $group['uses'];
+        }
+        $reviewedOrder = array_flip(array_keys(config('meal-variety', [])));
+        $rank = function ($group) use ($type, &$families, $reviewedOrder) {
+            return [
+                ! $group['liked'], $group['uses'],
+                // Keep familiar breakfast/snack guidance, while offering meat and fish
+                // before dairy-based mains when equally liked, unused choices exist.
+                in_array($type, ['lunch', 'dinner'], true) && $group['family'] === 'other',
+                $families[$group['family']] ?? 0,
+                $reviewedOrder[str_replace('reviewed:', '', $group['source'])] ?? PHP_INT_MAX,
+                $group['source'],
+            ];
+        };
+        $ordered = [];
+        while ($groups) {
+            // Re-evaluate family usage after each assignment so a three-option
+            // request includes both meat and fish instead of alphabetical neighbours.
+            usort($groups, fn ($a, $b) => $rank($a) <=> $rank($b));
+            $next = array_shift($groups);
+            $ordered[] = $next;
+            $families[$next['family']] = ($families[$next['family']] ?? 0) + 1;
+        }
 
-        return array_values($groups);
+        return $ordered;
     }
 }
