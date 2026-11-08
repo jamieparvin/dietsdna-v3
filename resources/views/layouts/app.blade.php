@@ -1,6 +1,11 @@
 @php
     $isAdminArea = request()->routeIs('admin.*');
-    $upcomingItems = [];
+    $upcomingItems = [
+        'AI Nutrition Coach',
+        'Vitamins & Minerals',
+        'Blood Test Insights',
+        'Supplement Guide',
+    ];
 @endphp
 
 <!DOCTYPE html>
@@ -186,7 +191,19 @@
             color: #b8cfc2;
         }
 
+        .nav-upcoming {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(255, 255, 255, .13);
+        }
+
+        .nav-upcoming .nav-pending > span:first-child {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
         .soon {
+            flex-shrink: 0;
             padding: 3px 6px;
             border: 1px solid rgba(255, 255, 255, .08);
             border-radius: 4px;
@@ -761,12 +778,17 @@
                         @endif
                     @endif
 
-                    @foreach($upcomingItems as $item)
-                        <div class="nav-pending" aria-disabled="true">
-                            <span>{{ $item }}</span>
-                            <span class="soon">Soon</span>
-                        </div>
-                    @endforeach
+                    @if(! $isAdminArea)
+                        <section class="nav-upcoming" aria-labelledby="coming-soon-heading">
+                            <h2 id="coming-soon-heading" class="nav-label">Coming soon</h2>
+                            @foreach($upcomingItems as $item)
+                                <div class="nav-pending" aria-disabled="true">
+                                    <span>{{ $item }}</span>
+                                    <span class="soon">Soon</span>
+                                </div>
+                            @endforeach
+                        </section>
+                    @endif
 
                     @if(auth()->user()->is_admin)
                         <div class="switch-area">
