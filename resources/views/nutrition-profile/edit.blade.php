@@ -449,7 +449,7 @@
                 <h1>Your nutrition profile</h1>
 
                 <p>
-                    Your measurements, goals and meal pattern.
+                    Your measurements, goals, meal options and activity level.
                     {{ $isProfileSetup ? 'Complete the fields below. You can save your progress at any time.' : 'Open a card to make changes.' }}
                 </p>
             </div>

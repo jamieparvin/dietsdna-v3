@@ -94,6 +94,7 @@ class WeeklyMealPlanningTest extends TestCase
     {
         $helper = app(PlannedMealSnapshot::class);
         $snapshot = $helper->fromIdea($this->idea($name), $this->ingredients);
+        $snapshot['instructions'] = 'Prepare the '.$name.' recipe with the listed ingredients.';
 
         return SavedMeal::query()->create(['user_id' => $user->id, 'content_hash' => $helper->hash($snapshot), 'meal_type' => 'lunch', 'snapshot' => $snapshot]);
     }

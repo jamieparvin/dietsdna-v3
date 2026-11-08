@@ -1,5 +1,5 @@
 <div class="pf-edit-body">
-    <label for="calculation_sex">Sex used by the calorie equation <span class="pf-field-hint">(Required for setup)</span></label>
+    <label for="calculation_sex">Gender - for calorie equation <span class="pf-field-hint">(Required for setup)</span></label>
 
     <select id="calculation_sex" name="calculation_sex">
         <option value="">Choose an equation</option>

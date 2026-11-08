@@ -56,6 +56,7 @@ class WeeklyMealSchedule
         $result = $cache = [];
         $variety = app(ProteinVariety::class);
         $usage = $proteinUsage ?? $variety->usage($fixed, $catalog);
+        $breakfastUsage = $this->breakfastUsage($fixed);
         foreach ($days as $date => $day) {
             $dayFixed = array_values(array_filter($fixed, fn ($row) => $row['date'] === $date));
             $attempts = 0;
@@ -63,7 +64,7 @@ class WeeklyMealSchedule
             $balanced = null;
             // Keep the original 24 numeric fallbacks and up to 24 time-preferred combinations.
             $candidates = $this->candidates($day, $pools, $preferredMinutes);
-            usort($candidates, fn ($a, $b) => [MealPreparationTime::scoreRows($a, $preferredMinutes), $variety->score($a, $catalog, $usage)] <=> [MealPreparationTime::scoreRows($b, $preferredMinutes), $variety->score($b, $catalog, $usage)]);
+            usort($candidates, fn ($a, $b) => [$this->breakfastScore($a, $breakfastUsage), MealPreparationTime::scoreRows($a, $preferredMinutes), $variety->score($a, $catalog, $usage)] <=> [$this->breakfastScore($b, $breakfastUsage), MealPreparationTime::scoreRows($b, $preferredMinutes), $variety->score($b, $catalog, $usage)]);
             foreach ($candidates as $candidate) {
                 if (++$attempts > 48) {
                     break;
@@ -95,6 +96,9 @@ class WeeklyMealSchedule
                 throw $last ?? ValidationException::withMessages(['week' => $date.': no suitable stored meal combination was available.']);
             }
             array_push($result, ...$balanced);
+            foreach ($this->breakfastUsage($balanced) as $identity => $count) {
+                $breakfastUsage[$identity] = ($breakfastUsage[$identity] ?? 0) + $count;
+            }
             foreach ($variety->usage($balanced, $catalog) as $key => $count) {
                 $usage[$key] = ($usage[$key] ?? 0) + $count;
             }
@@ -102,6 +106,33 @@ class WeeklyMealSchedule
         $balancer->assertFits($result, $fixed, $targets);
 
         return $result;
+    }
+
+    private function breakfastUsage(array $rows): array
+    {
+        $usage = [];
+        $snapshots = app(PlannedMealSnapshot::class);
+        foreach ($rows as $row) {
+            if (self::typeForSlot($row['slot']) !== 'breakfast') {
+                continue;
+            }
+            $identity = $snapshots->recipeIdentity($row['snapshot']);
+            if ($identity !== null) {
+                $usage[$identity] = ($usage[$identity] ?? 0) + 1;
+            }
+        }
+
+        return $usage;
+    }
+
+    private function breakfastScore(array $rows, array $usage): int
+    {
+        $score = 0;
+        foreach ($this->breakfastUsage($rows) as $identity => $count) {
+            $score += $count * ($usage[$identity] ?? 0);
+        }
+
+        return $score;
     }
 
     private function candidates(array $day, array $pools, ?int $preferredMinutes): array

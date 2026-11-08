@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\WeeklyMealDraft;
 use App\Services\Onboarding;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -105,6 +106,7 @@ class OnboardingTest extends TestCase
 
     public function test_all_dependent_routes_reject_incomplete_users_including_direct_write_requests(): void
     {
+        $this->withoutMiddleware(ThrottleRequests::class);
         Queue::fake([GenerateWeeklyMealDraft::class]);
         $this->actingAs(User::factory()->create());
         $routes = app('router')->getRoutes();

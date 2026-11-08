@@ -12,9 +12,9 @@
 <nav aria-label="Getting started">
     <ol class="setup-progress">
         @foreach([
-            1 => ['title' => 'Nutrition profile', 'subtitle' => 'Your details, goals and meal pattern'],
-            2 => ['title' => 'Food preferences', 'subtitle' => 'Foods you enjoy and prefer to avoid'],
-            3 => ['title' => 'Weekly meal preview', 'subtitle' => 'Optional once setup is complete'],
+            1 => ['title' => 'Nutrition profile', 'subtitle' => 'Provide your measurements, goals and choose how many meals you’d like each day'],
+            2 => ['title' => 'Food preferences', 'subtitle' => 'Choose the ingredients you like, dislike and what you’d prefer to avoid.'],
+            3 => ['title' => 'Weekly meal preview', 'subtitle' => 'Review a week of suggested meals before adding them to your plan.'],
         ] as $number => $step)
             <li @if($setup['step'] === $number) aria-current="step" @endif>
                 <span class="setup-progress-title">{{ $number }}. {{ $step['title'] }}</span>
@@ -42,3 +42,4 @@
     </div>
 @endif
 @endif
+

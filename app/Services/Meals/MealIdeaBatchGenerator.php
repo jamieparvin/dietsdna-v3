@@ -13,7 +13,7 @@ class MealIdeaBatchGenerator
         private readonly MealIdeaPortionBalancer $portions,
     ) {}
 
-    public function generate(User $user, string $mealType): array
+    public function generate(User $user, string $mealType, array $excludedRecipes = []): array
     {
         $context = $this->generator->context($user, $mealType);
         if ($context['meal_type'] !== $mealType) {
@@ -22,7 +22,7 @@ class MealIdeaBatchGenerator
         $accepted = [];
         $names = [];
         $recipes = [];
-        $avoid = [];
+        $avoid = array_values(array_filter(array_column($excludedRecipes, 'name')));
         $feedback = [];
         $rejectionDetails = [];
         $attempts = 0;
@@ -32,6 +32,7 @@ class MealIdeaBatchGenerator
         $replacementUnavailable = false;
         $batch = [];
         $variety = app(ProteinVariety::class);
+        $snapshots = app(PlannedMealSnapshot::class);
         $catalog = $context['ingredients'] ?? collect();
         $catalog = $catalog->mapWithKeys(fn ($food) => [$food->id => $food->getAttributes()])->all();
 
@@ -40,7 +41,9 @@ class MealIdeaBatchGenerator
             $attempts++;
             try {
                 $raw = $attempt === 0
-                    ? $this->generator->generate($user, $mealType)
+                    ? ($excludedRecipes === []
+                        ? $this->generator->generate($user, $mealType)
+                        : $this->generator->generate($user, $mealType, 3, $avoid, [['name' => $avoid[0] ?? 'Current meal', 'reason' => 'Offer different ingredient combinations or preparation methods, not resized copies of the planned recipe.']]))
                     // Use the permitted three-candidate request for the last chance,
                     // rather than leave one empty slot dependent on one candidate.
                     : $this->generator->generate($user, $mealType, 3, $avoid, $feedback,
@@ -76,6 +79,12 @@ class MealIdeaBatchGenerator
                 usort($remaining, fn ($a, $b) => [MealPreparationTime::score($a, $context['cooking_minutes'] ?? null), $variety->score([['snapshot' => $a]], $catalog, $usage)]
                     <=> [MealPreparationTime::score($b, $context['cooking_minutes'] ?? null), $variety->score([['snapshot' => $b]], $catalog, $usage)]);
                 $idea = array_shift($remaining);
+                if (collect($excludedRecipes)->contains(fn ($excluded) => $snapshots->sameRecipe($idea, $excluded))) {
+                    $duplicates++;
+                    $feedback[] = ['name' => $idea['name'], 'reason' => 'This repeats the currently planned recipe. Use a different ingredient combination or preparation, not different portions or a new title.'];
+
+                    continue;
+                }
                 $key = mb_strtolower(preg_replace('/\s+/u', ' ', trim($idea['name'])));
                 $recipe = $this->recipeKey($idea);
                 if (isset($names[$key]) || ($recipe !== null && isset($recipes[$recipe]))) {
@@ -97,6 +106,9 @@ class MealIdeaBatchGenerator
 
         $this->assertCurrent($user, $mealType, $context);
         if (! $accepted) {
+            if ($excludedRecipes !== []) {
+                $this->fail('No suitable alternatives were found for this slot. Your planned meal has not changed. Try generating again.');
+            }
             $this->fail('No ideas met this meal’s calorie and macro guide within the portion limits after one replacement attempt. Your previous ideas and saved meals have not changed. Try different meal ideas or review your eligible food choices.');
         }
 

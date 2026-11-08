@@ -404,10 +404,9 @@
     @include('partials.food-allergy-notice')
 
     <div class="fp-notice">
-        <strong>Like</strong> favours a food.
-        <strong>Dislike</strong> leaves it out of future suggestions.
-        <strong>Unspecified</strong> adds no preference.
-        Your choice applies to the raw and cooked options listed under the same food. Existing saved meals and plans are not changed.
+        <p><strong>Like</strong> makes an ingredient more likely to appear in future meal suggestions.</p>
+        <p><strong>Dislike</strong> excludes it from future suggestions.</p>
+        <p><strong>Unspecified</strong> means you have no preference.</p>
     </div>
 
     <div class="fp-toolbar">
